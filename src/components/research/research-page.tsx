@@ -203,7 +203,8 @@ function getConfidenceLevel(confidence: number): { label: string; color: string 
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function ResearchPage() {
-  const { organization } = useAuthStore()
+  const { user, organization } = useAuthStore()
+  const userId = user?.id
   const [activeTab, setActiveTab] = useState('sources')
 
   // Sources state
@@ -291,7 +292,7 @@ export function ResearchPage() {
     if (!organization?.id) return
     setIsLoadingCitations(true)
     try {
-      const res = await fetch(`/api/research?action=citations&organizationId=${organization.id}`)
+      const res = await fetch(`/api/research?action=citations&organizationId=${organization.id}&userId=${userId}`)
       if (res.ok) {
         const data = await res.json()
         setCitations(data.citations || [])

@@ -4,6 +4,7 @@ import { useAppStore } from '@/lib/stores/app-store'
 import { useAuthStore } from '@/lib/stores/auth-store'
 import { AppSidebar } from '@/components/layout/app-sidebar'
 import { AppHeader } from '@/components/layout/app-header'
+import { CommandPalette } from '@/components/layout/command-palette'
 import { AuthPage } from '@/components/auth/auth-page'
 import { DashboardPage } from '@/components/dashboard/dashboard-page'
 import { PlansPage } from '@/components/plans/plans-page'
@@ -20,52 +21,51 @@ import { ResearchPage } from '@/components/research/research-page'
 import { PlanReviewPage } from '@/components/plan-review/plan-review-page'
 import { PitchDeckPage } from '@/components/pitch-deck/pitch-deck-page'
 import { ActualsPage } from '@/components/actuals/actuals-page'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+
+const pageComponents: Record<string, React.ComponentType> = {
+  dashboard: DashboardPage,
+  'idea-canvas': IdeaCanvasPage,
+  plans: PlansPage,
+  forecasting: ForecastingPage,
+  actuals: ActualsPage,
+  'pitch-deck': PitchDeckPage,
+  agents: AgentsPage,
+  copilot: CopilotPage,
+  reports: ReportsPage,
+  research: ResearchPage,
+  workflows: WorkflowsPage,
+  observability: ObservabilityPage,
+  browser: BrowserPage,
+  'plan-review': PlanReviewPage,
+  settings: SettingsPage,
+}
 
 function PageRouter() {
   const { currentPage } = useAppStore()
+  const PageComponent = pageComponents[currentPage] || DashboardPage
 
-  switch (currentPage) {
-    case 'dashboard':
-      return <DashboardPage />
-    case 'idea-canvas':
-      return <IdeaCanvasPage />
-    case 'plans':
-      return <PlansPage />
-    case 'forecasting':
-      return <ForecastingPage />
-    case 'actuals':
-      return <ActualsPage />
-    case 'pitch-deck':
-      return <PitchDeckPage />
-    case 'agents':
-      return <AgentsPage />
-    case 'copilot':
-      return <CopilotPage />
-    case 'reports':
-      return <ReportsPage />
-    case 'research':
-      return <ResearchPage />
-    case 'workflows':
-      return <WorkflowsPage />
-    case 'observability':
-      return <ObservabilityPage />
-    case 'browser':
-      return <BrowserPage />
-    case 'plan-review':
-      return <PlanReviewPage />
-    case 'settings':
-      return <SettingsPage />
-    default:
-      return <DashboardPage />
-  }
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={currentPage}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -8 }}
+        transition={{ duration: 0.2, ease: 'easeOut' }}
+      >
+        <PageComponent />
+      </motion.div>
+    </AnimatePresence>
+  )
 }
 
 function AuthenticatedApp() {
-  const { sidebarOpen } = useAppStore()
+  const { sidebarOpen, setSidebarOpen } = useAppStore()
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-background">
       {/* Sidebar - hidden on mobile unless open */}
       <div className={`
         fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0
@@ -78,8 +78,8 @@ function AuthenticatedApp() {
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => useAppStore.getState().setSidebarOpen(false)}
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm"
+          onClick={() => setSidebarOpen(false)}
         />
       )}
 
@@ -92,17 +92,25 @@ function AuthenticatedApp() {
         {/* Footer */}
         <footer className="border-t bg-card px-4 py-2 shrink-0">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>GangNiaga AI OS v4.0</span>
-            <span>Autonomous Business Operating System</span>
+            <div className="flex items-center gap-2">
+              <span className="font-medium">GangNiaga AI OS</span>
+              <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-semibold">v4.0</span>
+            </div>
+            <span className="hidden sm:inline">Autonomous Business Operating System</span>
+            <span className="sm:hidden">AI Business OS</span>
           </div>
         </footer>
       </div>
+
+      {/* Command Palette */}
+      <CommandPalette />
     </div>
   )
 }
 
 export default function Home() {
   const { isAuthenticated, setUser, setOrganization } = useAuthStore()
+  const [isCheckingSession, setIsCheckingSession] = useState(true)
 
   // Check for existing session on mount
   useEffect(() => {
@@ -118,10 +126,32 @@ export default function Home() {
         }
       } catch {
         // No active session
+      } finally {
+        setIsCheckingSession(false)
       }
     }
     checkSession()
   }, [setUser, setOrganization])
+
+  if (isCheckingSession) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary text-primary-foreground animate-pulse">
+            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="currentColor"/>
+            </svg>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]" />
+            <div className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]" />
+            <div className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce" />
+          </div>
+          <p className="text-sm text-muted-foreground">Loading GangNiaga AI...</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!isAuthenticated) {
     return <AuthPage />

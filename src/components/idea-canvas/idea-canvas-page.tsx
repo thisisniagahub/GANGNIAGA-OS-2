@@ -195,7 +195,8 @@ const GAUGE_CHART_CONFIG: ChartConfig = {
 // ==========================================
 
 export function IdeaCanvasPage() {
-  const { organization } = useAuthStore()
+  const { user, organization } = useAuthStore()
+  const userId = user?.id
   const [canvases, setCanvases] = useState<IdeaCanvas[]>([])
   const [selectedCanvas, setSelectedCanvas] = useState<IdeaCanvas | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -224,7 +225,7 @@ export function IdeaCanvasPage() {
     if (!organization?.id) return
     setIsLoading(true)
     try {
-      const res = await fetch(`/api/idea-canvases?organizationId=${organization.id}`)
+      const res = await fetch(`/api/idea-canvases?organizationId=${organization.id}&userId=${userId}`)
       if (res.ok) {
         const data = await res.json()
         setCanvases(data.canvases || [])

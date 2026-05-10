@@ -24,7 +24,17 @@ import {
   PanelLeftClose,
   PanelLeft,
   Zap,
+  Clock,
 } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { toast } from 'sonner'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -111,10 +121,16 @@ function saveChatHistory(history: ChatSession[]) {
 
 function TypingDots() {
   return (
-    <div className="flex items-center gap-1.5 py-1">
-      <div className="w-2 h-2 rounded-full bg-muted-foreground/50 animate-[bounce_1.4s_ease-in-out_infinite]" />
-      <div className="w-2 h-2 rounded-full bg-muted-foreground/50 animate-[bounce_1.4s_ease-in-out_0.2s_infinite]" />
-      <div className="w-2 h-2 rounded-full bg-muted-foreground/50 animate-[bounce_1.4s_ease-in-out_0.4s_infinite]" />
+    <div className="flex items-center gap-1 py-1">
+      <span className="w-2 h-2 rounded-full bg-foreground/40 animate-[typing-bounce_1.4s_ease-in-out_infinite]" />
+      <span className="w-2 h-2 rounded-full bg-foreground/40 animate-[typing-bounce_1.4s_ease-in-out_0.2s_infinite]" />
+      <span className="w-2 h-2 rounded-full bg-foreground/40 animate-[typing-bounce_1.4s_ease-in-out_0.4s_infinite]" />
+      <style>{`
+        @keyframes typing-bounce {
+          0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+          30% { transform: translateY(-6px); opacity: 1; }
+        }
+      `}</style>
     </div>
   )
 }
@@ -131,6 +147,7 @@ export function CopilotPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
+  const [clearDialogOpen, setClearDialogOpen] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -211,6 +228,11 @@ export function CopilotPage() {
     setInput('')
     setIsLoading(true)
 
+    // Reset textarea height
+    if (textareaRef.current) {
+      textareaRef.current.style.height = '44px'
+    }
+
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
@@ -267,6 +289,7 @@ export function CopilotPage() {
     setSessionId(null)
     setInput('')
     setChatHistory([])
+    setClearDialogOpen(false)
     try {
       localStorage.removeItem(STORAGE_KEY)
     } catch {
@@ -303,6 +326,24 @@ export function CopilotPage() {
       sendMessage()
     }
   }
+
+  // ─── Auto-resize Textarea ────────────────────────────────────────────────
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value)
+    const el = e.target
+    el.style.height = '44px'
+    const scrollH = el.scrollHeight
+    const maxH = 44 * 4 // max 4 lines
+    el.style.height = `${Math.min(scrollH, maxH)}px`
+  }
+
+  // Reset textarea height when input is cleared
+  useEffect(() => {
+    if (input === '' && textareaRef.current) {
+      textareaRef.current.style.height = '44px'
+    }
+  }, [input])
 
   // ─── Get Agent Icon ────────────────────────────────────────────────────
 
@@ -360,8 +401,10 @@ export function CopilotPage() {
               return (
                 <div
                   key={session.id}
-                  className={`flex items-center gap-2 px-3 py-2.5 rounded-lg transition-colors hover:bg-muted/80 text-sm group ${
-                    sessionId === session.id ? 'bg-muted' : ''
+                  className={`flex items-center gap-2 px-3 py-2.5 rounded-lg transition-all duration-150 text-sm group ${
+                    sessionId === session.id
+                      ? 'bg-primary/10 border border-primary/20'
+                      : 'hover:bg-muted/60 border border-transparent'
                   }`}
                 >
                   <button
@@ -372,12 +415,13 @@ export function CopilotPage() {
                       <AgentIcon className={`w-3.5 h-3.5 shrink-0 ${agentCfg?.color || 'text-primary'}`} />
                       <span className="truncate font-medium text-xs">{session.title}</span>
                     </div>
-                    <div className="flex items-center gap-2 mt-1 ml-5.5">
+                    <div className="flex items-center gap-1.5 mt-1 ml-5.5">
                       <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4">
                         {agentCfg?.label || 'General'}
                       </Badge>
-                      <span className="text-[10px] text-muted-foreground">
-                        {new Date(session.createdAt).toLocaleDateString()}
+                      <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                        <Clock className="w-2.5 h-2.5" />
+                        {formatRelativeTime(session.createdAt)}
                       </span>
                       <span className="text-[10px] text-muted-foreground">
                         {session.messages.length} msgs
@@ -387,13 +431,13 @@ export function CopilotPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive"
                     onClick={(e) => {
                       e.stopPropagation()
                       deleteChatSession(session.id)
                     }}
                   >
-                    <Trash2 className="w-3 h-3 text-muted-foreground" />
+                    <Trash2 className="w-3 h-3" />
                   </Button>
                 </div>
               )
@@ -489,10 +533,30 @@ export function CopilotPage() {
               <Plus className="w-3.5 h-3.5" />
               New
             </Button>
-            <Button variant="ghost" size="sm" className="h-8 text-xs gap-1 text-destructive hover:text-destructive" onClick={clearChat}>
-              <Trash2 className="w-3.5 h-3.5" />
-              Clear
-            </Button>
+            <Dialog open={clearDialogOpen} onOpenChange={setClearDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 text-xs gap-1 text-destructive hover:text-destructive hover:bg-destructive/10">
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Clear
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-sm">
+                <DialogHeader>
+                  <DialogTitle>Clear All Chat History?</DialogTitle>
+                  <DialogDescription>
+                    This will permanently delete all your chat sessions and messages. This action cannot be undone.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="gap-2 sm:gap-0 mt-2">
+                  <Button variant="outline" onClick={() => setClearDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button variant="destructive" onClick={clearChat}>
+                    Clear All
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 
@@ -555,10 +619,10 @@ export function CopilotPage() {
                 <Textarea
                   ref={textareaRef}
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
                   placeholder={`Ask the ${currentAgentConfig.label} Agent anything...`}
-                  className="min-h-[44px] max-h-32 resize-none pr-12 text-sm"
+                  className="min-h-[44px] max-h-[176px] resize-none pr-12 text-sm overflow-y-auto"
                   rows={1}
                   disabled={isLoading}
                 />
@@ -576,12 +640,66 @@ export function CopilotPage() {
                 )}
               </Button>
             </div>
+            {/* Suggestion Chips */}
+            <SuggestionChips agentType={agentType} onSelect={(text) => setInput(text)} />
             <p className="text-[10px] text-muted-foreground text-center mt-2">
               Press Enter to send, Shift+Enter for new line
             </p>
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+// ─── Helper: Relative Time ────────────────────────────────────────────────
+
+function formatRelativeTime(isoDate: string): string {
+  const now = new Date()
+  const date = new Date(isoDate)
+  const diffMs = now.getTime() - date.getTime()
+  const diffSec = Math.floor(diffMs / 1000)
+  const diffMin = Math.floor(diffSec / 60)
+  const diffHr = Math.floor(diffMin / 60)
+  const diffDay = Math.floor(diffHr / 24)
+
+  if (diffSec < 60) return 'Just now'
+  if (diffMin < 60) return `${diffMin}m ago`
+  if (diffHr < 24) return `${diffHr}h ago`
+  if (diffDay < 7) return `${diffDay}d ago`
+  return date.toLocaleDateString()
+}
+
+// ─── Suggestion Chips ──────────────────────────────────────────────────────
+
+const CHIP_SUGGESTIONS: Record<AgentType, string[]> = {
+  general: ['Business plan', 'Key metrics', 'Performance analysis'],
+  cfo: ['Cash flow forecast', 'Burn rate', 'Expense optimization'],
+  ceo: ['Executive summary', 'Strategic priorities', 'Competitive analysis'],
+  research: ['Industry trends', 'Competitor strategies', 'Market opportunities'],
+  growth: ['Acquisition strategy', 'Customer retention', 'Growth channels'],
+}
+
+function SuggestionChips({
+  agentType,
+  onSelect,
+}: {
+  agentType: AgentType
+  onSelect: (text: string) => void
+}) {
+  const chips = CHIP_SUGGESTIONS[agentType]
+
+  return (
+    <div className="flex flex-wrap gap-1.5 justify-center mt-2 max-w-3xl mx-auto">
+      {chips.map((chip) => (
+        <button
+          key={chip}
+          onClick={() => onSelect(chip)}
+          className="px-2.5 py-1 rounded-full border bg-card/80 text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:border-primary/20 transition-all duration-150"
+        >
+          {chip}
+        </button>
+      ))}
     </div>
   )
 }

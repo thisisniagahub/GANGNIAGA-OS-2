@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -29,6 +29,16 @@ import {
   Clock,
   AlertCircle,
   BarChart3,
+  Plus,
+  FileText,
+  MessageSquare,
+  ClipboardList,
+  Sparkles,
+  Sun,
+  CalendarDays,
+  Rocket,
+  Inbox,
+  Lightbulb,
 } from 'lucide-react'
 import {
   AreaChart,
@@ -45,6 +55,8 @@ import {
   Cell,
 } from 'recharts'
 import { useAuthStore } from '@/lib/stores/auth-store'
+import { useAppStore } from '@/lib/stores/app-store'
+import { motion, AnimatePresence } from 'framer-motion'
 
 // ============================================
 // Types
@@ -218,6 +230,8 @@ export function DashboardPage() {
   const [isLoadingAgents, setIsLoadingAgents] = useState(true)
   const [dateRange, setDateRange] = useState<DateRange>('this_month')
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [chartPeriod, setChartPeriod] = useState<'7D' | '30D' | '90D' | '1Y'>('1Y')
+  const { setCurrentPage } = useAppStore()
 
   // Fetch KPIs
   const fetchKpis = useCallback(async () => {
@@ -297,6 +311,7 @@ export function DashboardPage() {
       icon: DollarSign,
       description: 'vs last month',
       invertTrend: false,
+      accentColor: 'bg-emerald-500',
     },
     {
       title: 'Net Profit',
@@ -304,6 +319,7 @@ export function DashboardPage() {
       icon: TrendingUp,
       description: 'vs last month',
       invertTrend: false,
+      accentColor: 'bg-teal-500',
     },
     {
       title: 'Active Customers',
@@ -311,6 +327,7 @@ export function DashboardPage() {
       icon: Users,
       description: 'vs last month',
       invertTrend: false,
+      accentColor: 'bg-cyan-500',
     },
     {
       title: 'Burn Rate',
@@ -318,6 +335,7 @@ export function DashboardPage() {
       icon: Activity,
       description: 'vs last month',
       invertTrend: true, // Lower burn rate is better
+      accentColor: 'bg-amber-500',
     },
   ]
 
@@ -434,6 +452,105 @@ export function DashboardPage() {
 
   const aiInsights = computeInsights()
 
+  // Greeting & time helpers
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours()
+    if (hour < 12) return 'Good morning'
+    if (hour < 17) return 'Good afternoon'
+    return 'Good evening'
+  }, [])
+
+  const currentDateTime = useMemo(() => {
+    return new Date().toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
+  }, [])
+
+  const motivationalMessages = useMemo(() => {
+    const msgs = [
+      'Every data point tells a story — let\'s find yours.',
+      'Great things are built one decision at a time.',
+      'Your metrics are moving in the right direction.',
+      'Smart decisions start with clear insights.',
+      'Today is a great day to optimize something.',
+    ]
+    return msgs[Math.floor(Math.random() * msgs.length)]
+  }, [])
+
+  // Recent activity feed (derived from agent sessions + insights)
+  const recentActivity = useMemo(() => {
+    const activities: Array<{
+      id: string
+      type: 'insight' | 'agent' | 'system'
+      icon: React.ElementType
+      title: string
+      description: string
+      time: string
+      color: string
+    }> = []
+
+    // Add AI insights as activities
+    aiInsights.forEach((insight, i) => {
+      activities.push({
+        id: `insight-${i}`,
+        type: 'insight',
+        icon: insight.type === 'positive' ? TrendingUp : insight.type === 'warning' ? AlertCircle : Lightbulb,
+        title: insight.title,
+        description: insight.description,
+        time: 'Just now',
+        color: insight.type === 'positive' ? 'text-emerald-500' : insight.type === 'warning' ? 'text-amber-500' : 'text-primary',
+      })
+    })
+
+    // Add agent sessions as activities
+    agentSessions.slice(0, 3).forEach((session) => {
+      const display = getAgentStatusDisplay(session)
+      activities.push({
+        id: session.id,
+        type: 'agent',
+        icon: Bot,
+        title: `${getAgentDisplayName(session.agentType)} ${display.status === 'running' ? 'is running' : display.status === 'active' ? 'completed a task' : 'is idle'}`,
+        description: display.task,
+        time: display.lastRun,
+        color: display.status === 'running' ? 'text-primary' : 'text-muted-foreground',
+      })
+    })
+
+    return activities.slice(0, 8)
+  }, [aiInsights, agentSessions])
+
+  // Chart period filtering
+  const chartData = useMemo(() => {
+    switch (chartPeriod) {
+      case '7D':
+        return demoRevenueData.slice(-1) // demo: show last month as proxy
+      case '30D':
+        return demoRevenueData.slice(-2)
+      case '90D':
+        return demoRevenueData.slice(-3)
+      case '1Y':
+      default:
+        return demoRevenueData
+    }
+  }, [chartPeriod])
+
+  const customerChartData = useMemo(() => {
+    switch (chartPeriod) {
+      case '7D':
+        return demoCustomerData.slice(-1)
+      case '30D':
+        return demoCustomerData.slice(-2)
+      case '90D':
+        return demoCustomerData.slice(-3)
+      case '1Y':
+      default:
+        return demoCustomerData
+    }
+  }, [chartPeriod])
+
   // Date range label for display
   const dateRangeLabels: Record<DateRange, string> = {
     this_month: 'This Month',
@@ -477,6 +594,72 @@ export function DashboardPage() {
         </div>
       </div>
 
+      {/* Welcome Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
+        <Card className="overflow-hidden border-0">
+          <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 p-6 text-white">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <Sparkles className="w-5 h-5 text-white/80" />
+                  <h3 className="text-xl font-bold">
+                    {greeting}, {user?.name || 'there'}!
+                  </h3>
+                </div>
+                <div className="flex items-center gap-2 text-white/70 text-sm mb-3">
+                  <CalendarDays className="w-3.5 h-3.5" />
+                  <span>{currentDateTime}</span>
+                </div>
+                <p className="text-white/80 text-sm max-w-lg">
+                  {motivationalMessages}
+                </p>
+              </div>
+              <div className="hidden sm:flex items-center gap-3">
+                <div className="text-right">
+                  <p className="text-white/60 text-xs">Organization</p>
+                  <p className="text-white font-medium text-sm">{organization?.name || '—'}</p>
+                </div>
+                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                  <Sun className="w-5 h-5 text-white" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </motion.div>
+
+      {/* Quick Actions Bar */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
+        className="grid grid-cols-2 sm:grid-cols-4 gap-3"
+      >
+        {[
+          { label: 'Create Plan', icon: Plus, page: 'plans' as const, color: 'from-emerald-500 to-emerald-600' },
+          { label: 'New Forecast', icon: TrendingUp, page: 'forecasting' as const, color: 'from-teal-500 to-teal-600' },
+          { label: 'Start AI Chat', icon: MessageSquare, page: 'copilot' as const, color: 'from-cyan-500 to-cyan-600' },
+          { label: 'Generate Report', icon: ClipboardList, page: 'reports' as const, color: 'from-amber-500 to-amber-600' },
+        ].map((action) => (
+          <motion.button
+            key={action.label}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setCurrentPage(action.page)}
+            className="flex items-center gap-3 p-3 sm:p-4 rounded-xl border bg-card hover:shadow-md transition-shadow text-left group"
+          >
+            <div className={`flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br ${action.color} text-white shrink-0`}>
+              <action.icon className="w-4 h-4" />
+            </div>
+            <span className="text-sm font-medium group-hover:text-primary transition-colors">{action.label}</span>
+          </motion.button>
+        ))}
+      </motion.div>
+
       {/* Top KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {isLoadingKpis ? (
@@ -506,6 +689,7 @@ export function DashboardPage() {
                   trend="up"
                   icon={card.icon}
                   description="No data"
+                  accentColor={card.accentColor}
                 />
               )
             }
@@ -520,12 +704,19 @@ export function DashboardPage() {
                 trend={trendIsPositive ? 'up' : 'down'}
                 icon={card.icon}
                 description={card.description}
+                accentColor={card.accentColor}
               />
             )
           })
         ) : (
           <div className="col-span-full">
-            <EmptyState message="No KPI data available" description="KPIs will appear once your organization has data." />
+            <EmptyState
+              message="No KPI data available"
+              description="KPIs will appear once your organization has data. Create a plan to get started."
+              icon={BarChart3}
+              actionLabel="Create Plan"
+              onAction={() => setCurrentPage('plans')}
+            />
           </div>
         )}
       </div>
@@ -552,29 +743,45 @@ export function DashboardPage() {
       </div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Revenue Chart */}
-        <Card className="lg:col-span-2">
+        <Card className="md:col-span-2">
           <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div>
                 <CardTitle className="text-base">Revenue & Expenses</CardTitle>
                 <CardDescription className="flex items-center gap-1.5">
-                  12-month financial overview
+                  Financial overview
                   <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Demo Data</Badge>
                 </CardDescription>
+              </div>
+              <div className="flex items-center gap-1">
+                {(['7D', '30D', '90D', '1Y'] as const).map((period) => (
+                  <motion.button
+                    key={period}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setChartPeriod(period)}
+                    className={`px-2.5 py-1 text-xs font-medium rounded-full transition-colors ${
+                      chartPeriod === period
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    {period}
+                  </motion.button>
+                ))}
               </div>
             </div>
           </CardHeader>
           <CardContent>
             {isLoadingKpis ? (
-              <div className="h-72 flex items-center justify-center">
+              <div className="h-80 flex items-center justify-center">
                 <Skeleton className="h-full w-full rounded-lg" />
               </div>
             ) : (
-              <div className="h-72">
+              <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={demoRevenueData}>
+                  <AreaChart data={chartData}>
                     <defs>
                       <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.3} />
@@ -617,20 +824,20 @@ export function DashboardPage() {
           </CardHeader>
           <CardContent>
             {isLoadingKpis ? (
-              <div className="h-48 flex items-center justify-center">
+              <div className="h-56 flex items-center justify-center">
                 <Skeleton className="h-full w-full rounded-lg" />
               </div>
             ) : (
               <>
-                <div className="h-48">
+                <div className="h-56">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
                         data={demoExpenseBreakdown}
                         cx="50%"
                         cy="50%"
-                        innerRadius={50}
-                        outerRadius={80}
+                        innerRadius={55}
+                        outerRadius={85}
                         paddingAngle={3}
                         dataKey="value"
                       >
@@ -660,9 +867,9 @@ export function DashboardPage() {
       </div>
 
       {/* Bottom Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Customer Growth */}
-        <Card className="lg:col-span-2">
+        <Card className="md:col-span-2">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Customer Growth</CardTitle>
             <CardDescription className="flex items-center gap-1.5">
@@ -672,13 +879,13 @@ export function DashboardPage() {
           </CardHeader>
           <CardContent>
             {isLoadingKpis ? (
-              <div className="h-64 flex items-center justify-center">
+              <div className="h-72 flex items-center justify-center">
                 <Skeleton className="h-full w-full rounded-lg" />
               </div>
             ) : (
-              <div className="h-64">
+              <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={demoCustomerData}>
+                  <BarChart data={customerChartData}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                     <XAxis dataKey="month" className="text-xs" tick={{ fontSize: 11 }} />
                     <YAxis className="text-xs" tick={{ fontSize: 11 }} />
@@ -699,21 +906,21 @@ export function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* AI Insights */}
+        {/* Activity & Insights */}
         <Card>
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
               <Brain className="w-4 h-4 text-primary" />
-              <CardTitle className="text-base">AI Insights</CardTitle>
+              <CardTitle className="text-base">Activity & Insights</CardTitle>
             </div>
-            <CardDescription>Intelligent business observations</CardDescription>
+            <CardDescription>Recent activity and intelligent observations</CardDescription>
           </CardHeader>
           <CardContent>
-            {isLoadingKpis ? (
+            {(isLoadingKpis || isLoadingAgents) ? (
               <div className="space-y-3">
-                {Array.from({ length: 3 }).map((_, i) => (
+                {Array.from({ length: 4 }).map((_, i) => (
                   <div key={i} className="flex gap-3 p-2">
-                    <Skeleton className="w-4 h-4 rounded shrink-0" />
+                    <Skeleton className="w-8 h-8 rounded-lg shrink-0" />
                     <div className="flex-1 space-y-1.5">
                       <Skeleton className="h-3 w-32" />
                       <Skeleton className="h-3 w-full" />
@@ -721,35 +928,52 @@ export function DashboardPage() {
                   </div>
                 ))}
               </div>
-            ) : (
-              <div className="space-y-3 max-h-72 overflow-y-auto custom-scrollbar">
-                {aiInsights.map((insight, i) => (
-                  <div key={i} className="flex gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                    <div className="mt-0.5">
-                      {insight.type === 'positive' && (
-                        <ArrowUpRight className="w-4 h-4 text-emerald-500" />
-                      )}
-                      {insight.type === 'warning' && (
-                        <TrendingDown className="w-4 h-4 text-amber-500" />
-                      )}
-                      {insight.type === 'info' && (
-                        <Zap className="w-4 h-4 text-primary" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium">{insight.title}</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">{insight.description}</p>
-                    </div>
-                  </div>
-                ))}
+            ) : recentActivity.length > 0 ? (
+              <div className="space-y-1 max-h-80 overflow-y-auto custom-scrollbar">
+                <AnimatePresence initial={false}>
+                  {recentActivity.map((activity, i) => (
+                    <motion.div
+                      key={activity.id}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.2, delay: i * 0.05 }}
+                      className="flex gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className={`flex items-center justify-center w-7 h-7 rounded-lg bg-muted shrink-0 mt-0.5`}>
+                        <activity.icon className={`w-3.5 h-3.5 ${activity.color}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs font-medium truncate">{activity.title}</p>
+                          <Badge
+                            variant="secondary"
+                            className="text-[9px] px-1 py-0 shrink-0"
+                          >
+                            {activity.type}
+                          </Badge>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{activity.description}</p>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground shrink-0 mt-0.5">{activity.time}</span>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
+            ) : (
+              <EmptyState
+                message="No recent activity"
+                description="Activity and AI insights will appear here as you use the platform."
+                icon={Inbox}
+                actionLabel="Start AI Chat"
+                onAction={() => setCurrentPage('copilot')}
+              />
             )}
           </CardContent>
         </Card>
       </div>
 
       {/* Agent Status & Financial Health */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Agent Status */}
         <Card>
           <CardHeader className="pb-2">
@@ -813,6 +1037,8 @@ export function DashboardPage() {
                 message="No agent sessions yet"
                 description="Agents will appear here once you start using the AI Copilot."
                 icon={Bot}
+                actionLabel="Start Copilot"
+                onAction={() => setCurrentPage('copilot')}
               />
             )}
           </CardContent>
@@ -901,6 +1127,7 @@ function KPICard({
   trend,
   icon: Icon,
   description,
+  accentColor = 'bg-primary',
 }: {
   title: string
   value: string
@@ -908,33 +1135,40 @@ function KPICard({
   trend: 'up' | 'down'
   icon: React.ElementType
   description: string
+  accentColor?: string
 }) {
   const isPositive = trend === 'up'
   return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10">
-            <Icon className="w-4 h-4 text-primary" />
+    <motion.div
+      whileHover={{ scale: 1.03, y: -2 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+    >
+      <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-default">
+        <div className={`h-1 ${accentColor}`} />
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className={`flex items-center justify-center w-9 h-9 rounded-lg ${accentColor}/10`}>
+              <Icon className={`w-4 h-4 ${accentColor.replace('bg-', 'text-')}`} />
+            </div>
+            <Badge
+              variant="secondary"
+              className={`text-[10px] ${
+                isPositive
+                  ? 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-950/30'
+                  : 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-950/30'
+              }`}
+            >
+              {isPositive ? <ArrowUpRight className="w-3 h-3 mr-0.5" /> : <ArrowDownRight className="w-3 h-3 mr-0.5" />}
+              {change}
+            </Badge>
           </div>
-          <Badge
-            variant="secondary"
-            className={`text-[10px] ${
-              isPositive
-                ? 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-950/30'
-                : 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-950/30'
-            }`}
-          >
-            {isPositive ? <ArrowUpRight className="w-3 h-3 mr-0.5" /> : <ArrowDownRight className="w-3 h-3 mr-0.5" />}
-            {change}
-          </Badge>
-        </div>
-        <div>
-          <p className="text-2xl font-bold">{value}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">{title} · {description}</p>
-        </div>
-      </CardContent>
-    </Card>
+          <div>
+            <p className="text-2xl font-bold tracking-tight">{value}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{title} · {description}</p>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
   )
 }
 
@@ -942,18 +1176,43 @@ function EmptyState({
   message,
   description,
   icon: Icon = AlertCircle,
+  actionLabel,
+  onAction,
 }: {
   message: string
   description: string
   icon?: React.ElementType
+  actionLabel?: string
+  onAction?: () => void
 }) {
   return (
-    <div className="flex flex-col items-center justify-center py-8 text-center">
-      <div className="flex items-center justify-center w-12 h-12 rounded-full bg-muted mb-3">
-        <Icon className="w-5 h-5 text-muted-foreground" />
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.3 }}
+      className="flex flex-col items-center justify-center py-8 text-center"
+    >
+      <div className="relative mb-4">
+        <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-muted">
+          <Icon className="w-7 h-7 text-muted-foreground" />
+        </div>
+        <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+          <Rocket className="w-3 h-3 text-primary" />
+        </div>
       </div>
-      <p className="text-sm font-medium text-muted-foreground">{message}</p>
+      <p className="text-sm font-medium text-foreground">{message}</p>
       <p className="text-xs text-muted-foreground mt-1 max-w-xs">{description}</p>
-    </div>
+      {actionLabel && onAction && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-4 h-8 text-xs"
+          onClick={onAction}
+        >
+          <Sparkles className="w-3 h-3 mr-1.5" />
+          {actionLabel}
+        </Button>
+      )}
+    </motion.div>
   )
 }

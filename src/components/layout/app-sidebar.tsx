@@ -23,10 +23,12 @@ import {
   Globe,
   ShieldCheck,
   Search,
+  Activity,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
+import { Badge } from '@/components/ui/badge'
 import {
   Tooltip,
   TooltipContent,
@@ -34,20 +36,20 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 
-const navItems: { id: PageId; label: string; icon: React.ElementType; group: string }[] = [
+const navItems: { id: PageId; label: string; icon: React.ElementType; group: string; badge?: string }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, group: 'Overview' },
   { id: 'idea-canvas', label: 'Idea Canvas', icon: Lightbulb, group: 'Planning' },
   { id: 'plans', label: 'Business Plans', icon: FileText, group: 'Planning' },
   { id: 'forecasting', label: 'Forecasting', icon: TrendingUp, group: 'Planning' },
   { id: 'actuals', label: 'Plan vs Actuals', icon: Target, group: 'Planning' },
-  { id: 'plan-review', label: 'Plan Review', icon: ShieldCheck, group: 'Planning' },
+  { id: 'plan-review', label: 'Plan Review', icon: ShieldCheck, group: 'Planning', badge: 'AI' },
   { id: 'pitch-deck', label: 'Pitch Decks', icon: Presentation, group: 'Planning' },
-  { id: 'agents', label: 'AI Agents', icon: Bot, group: 'Intelligence' },
+  { id: 'agents', label: 'AI Agents', icon: Bot, group: 'Intelligence', badge: '8' },
   { id: 'copilot', label: 'AI Copilot', icon: MessageSquare, group: 'Intelligence' },
   { id: 'research', label: 'Research', icon: Search, group: 'Intelligence' },
   { id: 'reports', label: 'Reports', icon: BarChart3, group: 'Operations' },
   { id: 'workflows', label: 'Workflows', icon: Workflow, group: 'Operations' },
-  { id: 'observability', label: 'Observability', icon: BarChart3, group: 'DevOps' },
+  { id: 'observability', label: 'Observability', icon: Activity, group: 'DevOps' },
   { id: 'browser', label: 'Browser', icon: Globe, group: 'DevOps' },
   { id: 'settings', label: 'Settings', icon: Settings, group: 'System' },
 ]
@@ -75,7 +77,7 @@ export function AppSidebar() {
           'flex items-center gap-3 px-4 h-16 border-b shrink-0',
           sidebarCollapsed && 'justify-center px-2'
         )}>
-          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary text-primary-foreground shrink-0">
+          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md shrink-0">
             <Sparkles className="w-4 h-4" />
           </div>
           {!sidebarCollapsed && (
@@ -88,10 +90,10 @@ export function AppSidebar() {
 
         {/* Organization */}
         {!sidebarCollapsed && organization && (
-          <div className="px-4 py-3 border-b">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center justify-center w-7 h-7 rounded-md bg-muted text-muted-foreground shrink-0">
-                <Building2 className="w-3.5 h-3.5" />
+          <div className="px-3 py-2.5 border-b">
+            <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-muted/50">
+              <div className="flex items-center justify-center w-6 h-6 rounded bg-primary/10 text-primary shrink-0">
+                <Building2 className="w-3 h-3" />
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="text-xs font-medium truncate">{organization.name}</span>
@@ -104,10 +106,10 @@ export function AppSidebar() {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-2 px-2 custom-scrollbar">
           {Object.entries(groupedItems).map(([group, items]) => (
-            <div key={group} className="mb-3">
+            <div key={group} className="mb-2">
               {!sidebarCollapsed && (
-                <div className="px-2 mb-1">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <div className="px-2 mb-0.5">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
                     {group}
                   </span>
                 </div>
@@ -119,19 +121,26 @@ export function AppSidebar() {
                     key={item.id}
                     onClick={() => setCurrentPage(item.id)}
                     className={cn(
-                      'flex items-center gap-3 w-full rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200',
+                      'flex items-center gap-3 w-full rounded-md px-2.5 py-1.5 text-sm font-medium transition-all duration-150',
                       'hover:bg-accent hover:text-accent-foreground',
                       isActive
-                        ? 'bg-primary/10 text-primary dark:bg-primary/20'
+                        ? 'bg-primary/10 text-primary dark:bg-primary/15'
                         : 'text-muted-foreground',
-                      sidebarCollapsed && 'justify-center px-2'
+                      sidebarCollapsed && 'justify-center px-2 py-2'
                     )}
                   >
                     <item.icon className={cn(
-                      'shrink-0',
-                      isActive ? 'w-4 h-4' : 'w-4 h-4'
+                      'shrink-0 transition-colors',
+                      isActive ? 'w-4 h-4 text-primary' : 'w-4 h-4'
                     )} />
-                    {!sidebarCollapsed && <span className="truncate">{item.label}</span>}
+                    {!sidebarCollapsed && (
+                      <span className="flex-1 truncate text-left">{item.label}</span>
+                    )}
+                    {!sidebarCollapsed && item.badge && (
+                      <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 font-semibold bg-primary/10 text-primary">
+                        {item.badge}
+                      </Badge>
+                    )}
                   </button>
                 )
 
@@ -152,12 +161,31 @@ export function AppSidebar() {
           ))}
         </nav>
 
+        {/* Quick action - Command Palette hint */}
+        {!sidebarCollapsed && (
+          <div className="px-3 py-1">
+            <button
+              onClick={() => {
+                // Trigger command palette via keyboard event
+                document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, ctrlKey: true }))
+              }}
+              className="flex items-center gap-2 w-full px-2.5 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-muted/50 transition-colors"
+            >
+              <Search className="w-3.5 h-3.5" />
+              <span className="flex-1 text-left">Quick search...</span>
+              <kbd className="pointer-events-none inline-flex h-4 select-none items-center gap-0.5 rounded border bg-muted px-1 font-mono text-[9px] font-medium text-muted-foreground">
+                ⌘K
+              </kbd>
+            </button>
+          </div>
+        )}
+
         {/* User section */}
         <div className="border-t p-2 shrink-0">
           {!sidebarCollapsed && user && (
-            <div className="flex items-center gap-2 px-2 py-1 mb-1">
+            <div className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted/50 transition-colors">
               <Avatar className="h-7 w-7 shrink-0">
-                <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                <AvatarFallback className="text-xs bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
                   {user.name?.charAt(0)?.toUpperCase() || user.email.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
@@ -168,7 +196,7 @@ export function AppSidebar() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 shrink-0"
+                className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
                 onClick={logout}
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -185,7 +213,7 @@ export function AppSidebar() {
                   onClick={logout}
                 >
                   <Avatar className="h-7 w-7">
-                    <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                    <AvatarFallback className="text-xs bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
                       {user.name?.charAt(0)?.toUpperCase() || user.email.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
@@ -203,7 +231,7 @@ export function AppSidebar() {
         <Button
           variant="ghost"
           size="icon"
-          className="absolute -right-3 top-20 h-6 w-6 rounded-full border bg-card shadow-sm z-10"
+          className="absolute -right-3 top-20 h-6 w-6 rounded-full border bg-card shadow-sm z-10 hover:bg-accent"
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
         >
           {sidebarCollapsed ? (

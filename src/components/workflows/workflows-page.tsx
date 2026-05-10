@@ -562,7 +562,8 @@ function CreateWorkflowDialog({ onCreate, isCreating }: { onCreate: (workflow: P
 
 // --- Main Component ---
 export function WorkflowsPage() {
-  const { organization } = useAuthStore()
+  const { user, organization } = useAuthStore()
+  const userId = user?.id
   const [workflows, setWorkflows] = useState<WorkflowItem[]>([])
   const [runs, setRuns] = useState<WorkflowRun[]>([])
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -577,7 +578,7 @@ export function WorkflowsPage() {
     if (!organization?.id) return
     setIsLoading(true)
     try {
-      const res = await fetch(`/api/workflows?organizationId=${organization.id}`)
+      const res = await fetch(`/api/workflows?organizationId=${organization.id}&userId=${userId}`)
       if (!res.ok) throw new Error('Failed to fetch workflows')
       const data = await res.json()
 

@@ -123,8 +123,8 @@
 
 /* Custom scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -132,20 +132,45 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: oklch(0.7 0 0 / 30%);
-  border-radius: 3px;
+  background: oklch(0.7 0 0 / 20%);
+  border-radius: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.5 0 0 / 50%);
+  background: oklch(0.5 0 0 / 40%);
 }
 
 .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: oklch(0.4 0 0 / 30%);
+  background: oklch(0.4 0 0 / 25%);
 }
 
 .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.6 0 0 / 50%);
+  background: oklch(0.6 0 0 / 40%);
+}
+
+/* Smooth scroll */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: oklch(0.7 0 0 / 20%) transparent;
+}
+
+.dark .custom-scrollbar {
+  scrollbar-color: oklch(0.4 0 0 / 25%) transparent;
+}
+
+/* Selection color */
+::selection {
+  background: oklch(0.646 0.222 41.116 / 30%);
+}
+
+.dark ::selection {
+  background: oklch(0.488 0.243 264.376 / 30%);
+}
+
+/* Focus ring animation */
+@keyframes focus-ring-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.646 0.222 41.116 / 40%); }
+  50% { box-shadow: 0 0 0 4px oklch(0.646 0.222 41.116 / 10%); }
 }
 
 /* Prose styles for AI-generated content */

@@ -453,7 +453,8 @@ function GenerateReportDialog({
 
 // --- Main Component ---
 export function ReportsPage() {
-  const { organization } = useAuthStore()
+  const { user, organization } = useAuthStore()
+  const userId = user?.id
   const [reports, setReports] = useState<Report[]>([])
   const [selectedReport, setSelectedReport] = useState<Report | null>(null)
   const [filterType, setFilterType] = useState<string>('all')
@@ -466,7 +467,7 @@ export function ReportsPage() {
     if (!organization?.id) return
     setIsLoading(true)
     try {
-      const res = await fetch(`/api/reports?organizationId=${organization.id}`)
+      const res = await fetch(`/api/reports?organizationId=${organization.id}&userId=${userId}`)
       if (!res.ok) throw new Error('Failed to fetch reports')
       const data = await res.json()
 

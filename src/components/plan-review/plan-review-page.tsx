@@ -602,6 +602,7 @@ function PipelineVisualization({ review }: { review: PlanReview }) {
 export function PlanReviewPage() {
   const { user, organization } = useAuthStore()
   const organizationId = organization?.id || ''
+  const userId = user?.id
 
   // ─── State ──────────────────────────────────────────────────────────
   const [reviews, setReviews] = useState<PlanReview[]>([])
@@ -626,7 +627,7 @@ export function PlanReviewPage() {
     if (!organizationId) return
     setIsLoadingReviews(true)
     try {
-      const res = await fetch(`/api/plan-reviews?organizationId=${organizationId}`)
+      const res = await fetch(`/api/plan-reviews?organizationId=${organizationId}&userId=${userId}`)
       if (!res.ok) throw new Error('Failed to fetch reviews')
       const data = await res.json()
       setReviews(data.reviews || [])
@@ -658,7 +659,7 @@ export function PlanReviewPage() {
   const fetchPlans = useCallback(async () => {
     if (!organizationId) return
     try {
-      const res = await fetch(`/api/plans?organizationId=${organizationId}`)
+      const res = await fetch(`/api/plans?organizationId=${organizationId}&userId=${userId}`)
       if (!res.ok) throw new Error('Failed to fetch plans')
       const data = await res.json()
       setPlans((data.plans || []).map((p: { id: string; title: string; status: string; createdAt: string }) => ({

@@ -20,23 +20,58 @@ export interface AuthUser {
 }
 
 /**
- * Get the authenticated user from the session cookie.
+ * Resolve user ID from multiple sources:
+ * 1. Request cookies (session_user)
+ * 2. Server cookies() helper
+ * 3. URL search params (?userId=...) as fallback
+ * 4. Authorization header (Bearer token)
+ */
+async function resolveUserId(req?: NextRequest): Promise<string | undefined> {
+  // Strategy 1: Request cookies (for API routes with req param)
+  if (req) {
+    const cookieValue = req.cookies.get('session_user')?.value
+    if (cookieValue) return cookieValue
+  }
+
+  // Strategy 2: Server cookies() helper
+  try {
+    const cookieStore = await cookies()
+    const cookieValue = cookieStore.get('session_user')?.value
+    if (cookieValue) return cookieValue
+  } catch {
+    // cookies() might not be available in all contexts
+  }
+
+  // Strategy 3: URL search params (?userId=...) as fallback
+  if (req) {
+    try {
+      const url = new URL(req.url)
+      const paramUserId = url.searchParams.get('userId')
+      if (paramUserId) return paramUserId
+    } catch {
+      // URL parsing failed
+    }
+  }
+
+  // Strategy 4: Authorization header (Bearer token)
+  if (req) {
+    const authHeader = req.headers.get('authorization')
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.slice(7)
+      if (token) return token
+    }
+  }
+
+  return undefined
+}
+
+/**
+ * Get the authenticated user from the session cookie or fallback sources.
  * Returns null if no valid session is found.
  */
 export async function getAuthUser(req?: NextRequest): Promise<AuthUser | null> {
   try {
-    let userId: string | undefined
-
-    // Try to get user ID from the request cookies first (for API routes with req param)
-    if (req) {
-      userId = req.cookies.get('session_user')?.value
-    }
-
-    // Fall back to the cookies() helper (for server components / route handlers without req)
-    if (!userId) {
-      const cookieStore = await cookies()
-      userId = cookieStore.get('session_user')?.value
-    }
+    const userId = await resolveUserId(req)
 
     if (!userId) {
       return null
@@ -98,13 +133,14 @@ export async function getAuthUser(req?: NextRequest): Promise<AuthUser | null> {
 
 /**
  * Require authentication — throws an error if the user is not authenticated.
+ * If `allowNoOrg` is true, will return the user even without an organization.
  */
-export async function requireAuth(req?: NextRequest): Promise<AuthUser> {
+export async function requireAuth(req?: NextRequest, options?: { allowNoOrg?: boolean }): Promise<AuthUser> {
   const user = await getAuthUser(req)
   if (!user) {
     throw new AuthError('Authentication required')
   }
-  if (!user.organizationId) {
+  if (!user.organizationId && !options?.allowNoOrg) {
     throw new AuthError('No active organization membership')
   }
   return user

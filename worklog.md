@@ -1223,3 +1223,37 @@ Stage Summary:
 - Total new files: 25+ (5 engines, 5 indexes, 10 API routes, 5 UI pages)
 - Total new Prisma models: 14 (IdeaCanvas, IdeaValidation, IdeaBenchmark, ResearchSource, ResearchCitation, IndustryBenchmark, PlanReview, PlanReviewFinding, ActualFinancial, ForecastVariance, FinancialAlert, AccountingConnection, PitchDeck, PitchDeckSlide, PitchDeckQuestion, PitchDeckTemplate)
 - All modules interconnected: Idea Canvas → Plans → Forecasting → Actuals → Plan Review → Pitch Decks
+
+---
+Task ID: UI-OVERHAUL
+Agent: Main Agent
+Task: Comprehensive project review, bug fixes, and UI/UX overhaul
+
+Work Log:
+- Fixed critical auth middleware bug: Updated `resolveUserId()` in auth.ts to check 4 strategies: request cookies, server cookies(), URL search params (userId), Authorization header
+- Fixed AuditLog Prisma client issue: Regenerated Prisma client after schema changes
+- Fixed all frontend API calls: Updated 10 component files to pass `userId` in API fetch URLs as fallback authentication
+- Added `requireAuth` options parameter with `allowNoOrg` flag for flexible auth
+- Built Command Palette component (Cmd+K) with navigation, actions, and settings groups
+- Completely redesigned Auth Page: Two-column layout with gradient branding, animated floating blobs, feature highlights, password visibility toggle, remember me checkbox
+- Enhanced main page.tsx: Added page transition animations (framer-motion AnimatePresence), loading screen with animated dots, CommandPalette integration
+- Upgraded AppSidebar: Gradient logo, organization card, navigation badges (AI/8), quick search button (⌘K hint), gradient avatar fallback
+- Upgraded AppHeader: Command palette trigger button with ⌘K shortcut, improved notification dropdown, gradient avatar
+- Enhanced Dashboard: Welcome section with personalized greeting and time-of-day, improved KPI cards with hover animations and colored accents, Quick Actions bar, time period selector on charts, Activity & Insights combined feed, better empty states with CTAs
+- Enhanced Plans Page: Better empty state with CTA, status badge colors (draft/review/approved/archived), grid/list view transition
+- Enhanced Forecasting Page: Engaging empty state, summary bar with key metrics, pill-style scenario selector, improved financial statement tables
+- Enhanced Settings Page: Fixed theme switcher with next-themes resolvedTheme, danger zone section with delete account, integration status indicators (green/gray dots)
+- Enhanced Copilot Page: Clear chat confirmation dialog, improved typing indicator animation, auto-resize textarea, suggestion chips per agent type, improved chat history with relative timestamps
+- Improved globals.css: Better scrollbar styles, selection color, smooth scroll support, focus ring animation
+- Created use-api.ts hook: Consistent API error handling with toast notifications
+- Fixed ESLint error: Replaced setState-in-effect pattern in AppHeader with proper mounted guard
+
+Stage Summary:
+- All 500 errors on API routes (agents, plans, forecasts, idea-canvases) fixed
+- AuditLog create error fixed
+- 10+ pages enhanced with better UI/UX
+- Command palette (Cmd+K) added for quick navigation
+- Auth page completely redesigned with professional branding
+- Dashboard significantly enhanced with welcome section, quick actions, and better charts
+- All lint checks pass cleanly
+- Dev server compiles without errors

@@ -149,15 +149,16 @@ const TARGET_MARKETS = [
   'Global',
 ]
 
-const STATUS_CONFIG: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive'; icon: React.ElementType; color: string }> = {
-  draft: { label: 'Draft', variant: 'secondary', icon: Edit, color: 'text-slate-500' },
-  review: { label: 'In Review', variant: 'outline', icon: Eye, color: 'text-amber-500' },
-  approved: { label: 'Approved', variant: 'default', icon: CheckCircle, color: 'text-emerald-500' },
-  archived: { label: 'Archived', variant: 'secondary', icon: Archive, color: 'text-muted-foreground' },
+const STATUS_CONFIG: Record<string, { label: string; icon: React.ElementType; badgeClass: string }> = {
+  draft: { label: 'Draft', icon: Edit, badgeClass: 'bg-slate-100 text-slate-700 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300' },
+  review: { label: 'In Review', icon: Eye, badgeClass: 'bg-amber-50 text-amber-700 hover:bg-amber-50 dark:bg-amber-950/40 dark:text-amber-400' },
+  approved: { label: 'Approved', icon: CheckCircle, badgeClass: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400' },
+  archived: { label: 'Archived', icon: Archive, badgeClass: 'bg-red-50 text-red-700 hover:bg-red-50 dark:bg-red-950/40 dark:text-red-400' },
 }
 
 export function PlansPage() {
-  const { organization } = useAuthStore()
+  const { user, organization } = useAuthStore()
+  const userId = user?.id
 
   // State
   const [plans, setPlans] = useState<BusinessPlan[]>([])
@@ -190,7 +191,7 @@ export function PlansPage() {
     if (!organization?.id) return
     setIsLoadingPlans(true)
     try {
-      const res = await fetch(`/api/plans?organizationId=${organization.id}`)
+      const res = await fetch(`/api/plans?organizationId=${organization.id}&userId=${userId}`)
       if (res.ok) {
         const data = await res.json()
         setPlans(data.plans || [])
@@ -402,7 +403,7 @@ export function PlansPage() {
     const config = STATUS_CONFIG[status] || STATUS_CONFIG.draft
     const Icon = config.icon
     return (
-      <Badge variant={config.variant} className="gap-1 text-xs">
+      <Badge variant="secondary" className={`gap-1 text-xs border-0 ${config.badgeClass}`}>
         <Icon className="w-3 h-3" />
         {config.label}
       </Badge>
@@ -966,51 +967,67 @@ export function PlansPage() {
         </div>
       ) : filteredPlans.length === 0 ? (
         <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-muted mb-4">
-              <FileText className="w-8 h-8 text-muted-foreground" />
+          <CardContent className="flex flex-col items-center justify-center py-20">
+            {/* Illustration-like icon composition */}
+            <div className="relative mb-6">
+              <div className="flex items-center justify-center w-24 h-24 rounded-3xl bg-primary/5 border-2 border-dashed border-primary/20">
+                <FileText className="w-10 h-10 text-primary/60" />
+              </div>
+              <div className="absolute -top-2 -right-2 flex items-center justify-center w-9 h-9 rounded-full bg-primary/10 border border-primary/20">
+                <Sparkles className="w-4 h-4 text-primary" />
+              </div>
+              <div className="absolute -bottom-1 -left-3 flex items-center justify-center w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
+                <CheckCircle className="w-4 h-4 text-emerald-500" />
+              </div>
             </div>
-            <h3 className="text-lg font-semibold mb-1">
+            <h3 className="text-xl font-semibold mb-2">
               {searchQuery || statusFilter !== 'all'
                 ? 'No plans found'
                 : 'No business plans yet'}
             </h3>
-            <p className="text-sm text-muted-foreground text-center max-w-md mb-6">
+            <p className="text-sm text-muted-foreground text-center max-w-lg mb-2">
               {searchQuery || statusFilter !== 'all'
-                ? 'Try adjusting your search or filter criteria.'
-                : 'Create your first business plan and let AI help you build a comprehensive strategy.'}
+                ? 'Try adjusting your search or filter criteria to find what you\'re looking for.'
+                : 'Business plans help you define your strategy, analyze markets, and present your vision to stakeholders.'}
             </p>
             {!searchQuery && statusFilter === 'all' && (
-              <Button
-                onClick={() => setCreateDialogOpen(true)}
-                className="gap-1.5"
-              >
-                <Plus className="w-4 h-4" />
-                Create Your First Plan
-              </Button>
+              <>
+                <p className="text-xs text-muted-foreground text-center max-w-sm mb-6">
+                  AI can auto-generate all 8 sections — from Executive Summary to Financial Planning — in seconds.
+                </p>
+                <Button
+                  onClick={() => setCreateDialogOpen(true)}
+                  size="lg"
+                  className="gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create Your First Plan
+                </Button>
+              </>
             )}
           </CardContent>
         </Card>
-      ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredPlans.map((plan) => (
-            <PlanCard
-              key={plan.id}
-              plan={plan}
-              onSelect={setSelectedPlan}
-              getStatusBadge={getStatusBadge}
-            />
-          ))}
-        </div>
       ) : (
-        <div className="space-y-2">
+        <div
+          key={viewMode}
+          className={`transition-all duration-200 ease-in-out ${viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-2'}`}
+        >
           {filteredPlans.map((plan) => (
-            <PlanListItem
-              key={plan.id}
-              plan={plan}
-              onSelect={setSelectedPlan}
-              getStatusBadge={getStatusBadge}
-            />
+            viewMode === 'grid' ? (
+              <PlanCard
+                key={plan.id}
+                plan={plan}
+                onSelect={setSelectedPlan}
+                getStatusBadge={getStatusBadge}
+              />
+            ) : (
+              <PlanListItem
+                key={plan.id}
+                plan={plan}
+                onSelect={setSelectedPlan}
+                getStatusBadge={getStatusBadge}
+              />
+            )
           ))}
         </div>
       )}

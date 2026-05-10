@@ -181,7 +181,8 @@ function getStatusBadgeVariant(status: string): 'default' | 'secondary' | 'destr
 // ============================================
 
 export function ObservabilityPage() {
-  const { organization } = useAuthStore()
+  const { user, organization } = useAuthStore()
+  const userId = user?.id
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [tokenStats, setTokenStats] = useState<TokenStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -193,8 +194,8 @@ export function ObservabilityPage() {
     setIsLoading(true)
     try {
       const [dashRes, tokenRes] = await Promise.all([
-        fetch(`/api/observability?organizationId=${organization.id}&type=dashboard&days=${timeRange === '1d' ? '1' : timeRange === '7d' ? '7' : timeRange === '30d' ? '30' : '90'}`),
-        fetch(`/api/observability?organizationId=${organization.id}&type=tokens&days=${timeRange === '1d' ? '1' : timeRange === '7d' ? '7' : timeRange === '30d' ? '30' : '90'}`),
+        fetch(`/api/observability?organizationId=${organization.id}&userId=${userId}&type=dashboard&days=${timeRange === '1d' ? '1' : timeRange === '7d' ? '7' : timeRange === '30d' ? '30' : '90'}`),
+        fetch(`/api/observability?organizationId=${organization.id}&userId=${userId}&type=tokens&days=${timeRange === '1d' ? '1' : timeRange === '7d' ? '7' : timeRange === '30d' ? '30' : '90'}`),
       ])
 
       if (dashRes.ok) {

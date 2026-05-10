@@ -251,7 +251,8 @@ const TEMPLATES: TemplateInfo[] = [
 // ==========================================
 
 export function PitchDeckPage() {
-  const { organization } = useAuthStore()
+  const { user, organization } = useAuthStore()
+  const userId = user?.id
 
   // Core state
   const [decks, setDecks] = useState<PitchDeck[]>([])
@@ -297,7 +298,7 @@ export function PitchDeckPage() {
     if (!organization?.id) return
     setIsLoading(true)
     try {
-      const res = await fetch(`/api/pitch-decks?organizationId=${organization.id}`)
+      const res = await fetch(`/api/pitch-decks?organizationId=${organization.id}&userId=${userId}`)
       if (res.ok) {
         const data = await res.json()
         setDecks(data.decks || [])
@@ -315,7 +316,7 @@ export function PitchDeckPage() {
   const fetchPlans = useCallback(async () => {
     if (!organization?.id) return
     try {
-      const res = await fetch(`/api/plans?organizationId=${organization.id}`)
+      const res = await fetch(`/api/plans?organizationId=${organization.id}&userId=${userId}`)
       if (res.ok) {
         const data = await res.json()
         setPlans((data.plans || []).map((p: { id: string; title: string; status: string }) => ({

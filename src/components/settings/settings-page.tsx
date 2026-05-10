@@ -26,6 +26,8 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -45,6 +47,7 @@ import {
   ExternalLink,
   Plus,
   CheckCircle,
+  Circle,
   Key,
   Smartphone,
   Monitor,
@@ -54,6 +57,7 @@ import {
   Download,
   Clock,
   Loader2,
+  AlertTriangle,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTheme } from 'next-themes'
@@ -584,15 +588,31 @@ function IntegrationsSection() {
                 key={integration.id}
                 className="flex items-start gap-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors"
               >
-                <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-muted shrink-0">
+                <div className="relative flex items-center justify-center w-9 h-9 rounded-lg bg-muted shrink-0">
                   <IntegrationIcon className="w-4 h-4 text-muted-foreground" />
+                  <span
+                    className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-card ${
+                      integration.connected
+                        ? 'bg-emerald-500'
+                        : 'bg-muted-foreground/30'
+                    }`}
+                  />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium">{integration.name}</p>
-                    {integration.connected && (
-                      <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                    )}
+                    <span className={`inline-flex items-center gap-1 text-[10px] font-medium ${
+                      integration.connected
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : 'text-muted-foreground'
+                    }`}>
+                      <Circle className={`w-2 h-2 fill-current ${
+                        integration.connected
+                          ? 'text-emerald-500'
+                          : 'text-muted-foreground/40'
+                      }`} />
+                      {integration.connected ? 'Connected' : 'Disconnected'}
+                    </span>
                   </div>
                   <p className="text-[11px] text-muted-foreground line-clamp-1">{integration.description}</p>
                   <Button
@@ -797,13 +817,18 @@ function SecuritySection() {
 }
 
 function ThemeSection() {
-  const { theme, setTheme } = useTheme()
+  const { theme, resolvedTheme, setTheme } = useTheme()
 
   const themes = [
     { id: 'light', label: 'Light', icon: Sun },
     { id: 'dark', label: 'Dark', icon: Moon },
     { id: 'system', label: 'System', icon: Monitor },
   ]
+
+  // resolvedTheme is undefined during SSR; once mounted on the client it resolves.
+  // Using it avoids a dedicated mounted state + useEffect call.
+  const isMounted = resolvedTheme !== undefined
+  const activeTheme = isMounted ? theme : undefined
 
   return (
     <Card>
@@ -818,7 +843,7 @@ function ThemeSection() {
         <div className="grid grid-cols-3 gap-3">
           {themes.map((t) => {
             const ThemeIcon = t.icon
-            const isActive = theme === t.id
+            const isActive = activeTheme === t.id
             return (
               <button
                 key={t.id}
@@ -833,9 +858,95 @@ function ThemeSection() {
                 <span className={`text-xs font-medium ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
                   {t.label}
                 </span>
+                {t.id === 'system' && isMounted && resolvedTheme && (
+                  <span className="text-[10px] text-muted-foreground">
+                    ({resolvedTheme === 'dark' ? 'Dark' : 'Light'})
+                  </span>
+                )}
               </button>
             )
           })}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function DangerZoneSection() {
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState('')
+
+  const handleDeleteAccount = () => {
+    if (deleteConfirm !== 'DELETE') {
+      toast.error('Please type DELETE to confirm')
+      return
+    }
+    setDeleteOpen(false)
+    setDeleteConfirm('')
+    toast.success('Account deletion requested. This is a demo — no data was deleted.')
+  }
+
+  return (
+    <Card className="border-destructive/30">
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-destructive" />
+          <CardTitle className="text-base text-destructive">Danger Zone</CardTitle>
+        </div>
+        <CardDescription>Irreversible and destructive actions</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between p-4 rounded-lg border border-destructive/20 bg-destructive/5">
+          <div>
+            <p className="text-sm font-medium">Delete Account</p>
+            <p className="text-[11px] text-muted-foreground">
+              Permanently delete your account and all associated data. This action cannot be undone.
+            </p>
+          </div>
+          <Dialog open={deleteOpen} onOpenChange={(open) => { setDeleteOpen(open); if (!open) setDeleteConfirm('') }}>
+            <DialogTrigger asChild>
+              <Button variant="destructive" size="sm">
+                Delete Account
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-destructive" />
+                  Delete Account
+                </DialogTitle>
+                <DialogDescription>
+                  This will permanently delete your account, organization, and all data. This action cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 mt-2">
+                <div className="space-y-2">
+                  <Label htmlFor="delete-confirm">
+                    Type <span className="font-bold text-destructive">DELETE</span> to confirm
+                  </Label>
+                  <Input
+                    id="delete-confirm"
+                    value={deleteConfirm}
+                    onChange={(e) => setDeleteConfirm(e.target.value)}
+                    placeholder="DELETE"
+                    className="border-destructive/30 focus:border-destructive"
+                  />
+                </div>
+                <DialogFooter className="gap-2 sm:gap-0">
+                  <Button variant="outline" onClick={() => { setDeleteOpen(false); setDeleteConfirm('') }}>
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={handleDeleteAccount}
+                    disabled={deleteConfirm !== 'DELETE'}
+                  >
+                    Delete Account
+                  </Button>
+                </DialogFooter>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </CardContent>
     </Card>
@@ -855,6 +966,7 @@ export function SettingsPage() {
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'security', label: 'Security', icon: Shield },
     { id: 'appearance', label: 'Appearance', icon: Palette },
+    { id: 'danger', label: 'Danger Zone', icon: AlertTriangle },
   ]
 
   return (
@@ -887,8 +999,8 @@ export function SettingsPage() {
                       : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                   }`}
                 >
-                  <SectionIcon className="w-4 h-4 shrink-0" />
-                  <span className="hidden sm:inline">{section.label}</span>
+                  <SectionIcon className={`w-4 h-4 shrink-0 ${section.id === 'danger' ? 'text-destructive' : ''}`} />
+                  <span className={`hidden sm:inline ${section.id === 'danger' ? 'text-destructive' : ''}`}>{section.label}</span>
                 </button>
               )
             })}
@@ -905,6 +1017,7 @@ export function SettingsPage() {
           {activeSection === 'notifications' && <NotificationsSection />}
           {activeSection === 'security' && <SecuritySection />}
           {activeSection === 'appearance' && <ThemeSection />}
+          {activeSection === 'danger' && <DangerZoneSection />}
         </div>
       </div>
     </div>

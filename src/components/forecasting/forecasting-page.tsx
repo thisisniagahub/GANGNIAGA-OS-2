@@ -29,6 +29,9 @@ import {
   FolderOpen,
   FilePlus,
   Loader2,
+  ChartLine,
+  Wallet,
+  Flame,
 } from 'lucide-react'
 import {
   AreaChart,
@@ -190,7 +193,8 @@ function formatCurrencyFull(value: number): string {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function ForecastingPage() {
-  const { organization } = useAuthStore()
+  const { user, organization } = useAuthStore()
+  const userId = user?.id
 
   // State
   const [scenario, setScenario] = useState<ScenarioType>('base')
@@ -211,6 +215,7 @@ export function ForecastingPage() {
   const [forecastName, setForecastName] = useState('')
   const [saveDialogOpen, setSaveDialogOpen] = useState(false)
   const [loadDialogOpen, setLoadDialogOpen] = useState(false)
+  const [hasInitialized, setHasInitialized] = useState(false)
 
   // Fetch saved forecasts on mount
   useEffect(() => {
@@ -218,7 +223,7 @@ export function ForecastingPage() {
       if (!organization?.id) return
       setIsLoadingForecasts(true)
       try {
-        const res = await fetch(`/api/forecasts?organizationId=${organization.id}`)
+        const res = await fetch(`/api/forecasts?organizationId=${organization.id}&userId=${userId}`)
         if (res.ok) {
           const data = await res.json()
           setSavedForecasts(data.forecasts || [])
@@ -290,7 +295,7 @@ export function ForecastingPage() {
         setSaveDialogOpen(false)
         setForecastName('')
         // Refresh the list
-        const listRes = await fetch(`/api/forecasts?organizationId=${organization.id}`)
+        const listRes = await fetch(`/api/forecasts?organizationId=${organization.id}&userId=${userId}`)
         if (listRes.ok) {
           const listData = await listRes.json()
           setSavedForecasts(listData.forecasts || [])
@@ -339,6 +344,7 @@ export function ForecastingPage() {
     setScenario((forecast.type || 'base') as ScenarioType)
     setCurrentForecastId(forecast.id)
     setLoadDialogOpen(false)
+    setHasInitialized(true)
     toast.success(`Loaded forecast: ${forecast.name}`)
   }, [])
 
@@ -352,7 +358,13 @@ export function ForecastingPage() {
     setCustomGrowthMultiplier(1.0)
     setCustomRevenueMultiplier(1.0)
     setCustomExpenseMultiplier(1.0)
+    setHasInitialized(true)
     toast.success('New forecast created')
+  }, [])
+
+  // Start first forecast
+  const handleStartForecasting = useCallback(() => {
+    setHasInitialized(true)
   }, [])
 
   const multipliers = useMemo(() => {
@@ -756,27 +768,125 @@ export function ForecastingPage() {
           </div>
         </div>
 
+        {/* Empty State - Show before first forecast */}
+        {!hasInitialized ? (
+          <Card className="border-dashed">
+            <CardContent className="flex flex-col items-center justify-center py-20">
+              {/* Illustration-like icon composition */}
+              <div className="relative mb-6">
+                <div className="flex items-center justify-center w-24 h-24 rounded-3xl bg-primary/5 border-2 border-dashed border-primary/20">
+                  <ChartLine className="w-10 h-10 text-primary/60" />
+                </div>
+                <div className="absolute -top-2 -right-2 flex items-center justify-center w-9 h-9 rounded-full bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
+                  <TrendingUp className="w-4 h-4 text-emerald-500" />
+                </div>
+                <div className="absolute -bottom-1 -left-3 flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 border border-primary/20">
+                  <Sparkles className="w-3.5 h-3.5 text-primary" />
+                </div>
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Start Your Financial Forecast</h3>
+              <p className="text-sm text-muted-foreground text-center max-w-lg mb-2">
+                Build 12-month revenue and expense projections with scenario analysis, cash flow tracking, and AI-powered insights.
+              </p>
+              <p className="text-xs text-muted-foreground text-center max-w-sm mb-6">
+                Choose from Best, Base, or Worst case scenarios — or customize your own multipliers.
+              </p>
+              <div className="flex items-center gap-3">
+                <Button size="lg" onClick={handleStartForecasting} className="gap-2">
+                  <Plus className="w-4 h-4" />
+                  Create Your First Forecast
+                </Button>
+                {savedForecasts.length > 0 && (
+                  <Button variant="outline" size="lg" onClick={() => setLoadDialogOpen(true)} className="gap-2">
+                    <FolderOpen className="w-4 h-4" />
+                    Load Saved
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+        <>
+        {/* Summary Bar */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 shrink-0">
+                <DollarSign className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground font-medium">Total Revenue</p>
+                <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(monthlyData.reduce((sum, d) => sum + d.revenue, 0))}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-red-50 dark:bg-red-950/30 shrink-0">
+                <TrendingDown className="w-5 h-5 text-red-500 dark:text-red-400" />
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground font-medium">Total Expenses</p>
+                <p className="text-lg font-bold text-red-500 dark:text-red-400">{formatCurrency(monthlyData.reduce((sum, d) => sum + d.expenses, 0))}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 shrink-0">
+                <Wallet className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground font-medium">Net Profit</p>
+                <p className={`text-lg font-bold ${keyMetrics.netIncome >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
+                  {formatCurrency(monthlyData.reduce((sum, d) => sum + d.netIncome, 0))}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/30 shrink-0">
+                <Flame className="w-5 h-5 text-amber-500 dark:text-amber-400" />
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground font-medium">Burn Rate</p>
+                <p className="text-lg font-bold">
+                  {keyMetrics.burnRate > 0 ? `${formatCurrency(keyMetrics.burnRate)}/mo` : <span className="text-emerald-600 dark:text-emerald-400">None</span>}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Scenario Tabs + Key Metrics */}
         <Tabs value={scenario} onValueChange={(v) => setScenario(v as ScenarioType)}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <TabsList className="grid w-full sm:w-auto grid-cols-4">
-              <TabsTrigger value="best" className="text-xs sm:text-sm">
-                <TrendingUp className="w-3 h-3 mr-1 hidden sm:inline" />
-                Best Case
-              </TabsTrigger>
-              <TabsTrigger value="base" className="text-xs sm:text-sm">
-                <Target className="w-3 h-3 mr-1 hidden sm:inline" />
-                Base Case
-              </TabsTrigger>
-              <TabsTrigger value="worst" className="text-xs sm:text-sm">
-                <TrendingDown className="w-3 h-3 mr-1 hidden sm:inline" />
-                Worst Case
-              </TabsTrigger>
-              <TabsTrigger value="custom" className="text-xs sm:text-sm">
-                <BarChart3 className="w-3 h-3 mr-1 hidden sm:inline" />
-                Custom
-              </TabsTrigger>
-            </TabsList>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {([
+                { value: 'best' as ScenarioType, label: 'Best Case', icon: TrendingUp, activeClass: 'bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800' },
+                { value: 'base' as ScenarioType, label: 'Base Case', icon: Target, activeClass: 'bg-primary/10 text-primary border-primary/30' },
+                { value: 'worst' as ScenarioType, label: 'Worst Case', icon: TrendingDown, activeClass: 'bg-red-50 text-red-700 border-red-300 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800' },
+                { value: 'custom' as ScenarioType, label: 'Custom', icon: BarChart3, activeClass: 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800' },
+              ]).map((s) => {
+                const Icon = s.icon
+                const isActive = scenario === s.value
+                return (
+                  <button
+                    key={s.value}
+                    onClick={() => setScenario(s.value)}
+                    className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium border transition-all duration-150 ${
+                      isActive
+                        ? s.activeClass
+                        : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {s.label}
+                  </button>
+                )
+              })}
+            </div>
             {scenario === 'custom' && (
               <div className="flex items-center gap-3 flex-wrap">
                 <div className="flex items-center gap-1.5">
@@ -1399,34 +1509,34 @@ export function ForecastingPage() {
               </TabsList>
 
               <TabsContent value="pl" className="mt-0">
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto rounded-lg border">
                   <Table>
                     <TableHeader>
-                      <TableRow>
-                        <TableHead className="sticky left-0 bg-card z-10 min-w-[100px]">Metric</TableHead>
+                      <TableRow className="bg-muted/50">
+                        <TableHead className="sticky left-0 bg-muted/50 z-10 min-w-[120px] font-semibold">Metric</TableHead>
                         {MONTHS.map((m) => (
-                          <TableHead key={m} className="text-right min-w-[80px]">{m}</TableHead>
+                          <TableHead key={m} className="text-right min-w-[80px] font-semibold">{m}</TableHead>
                         ))}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      <TableRow className="font-medium">
-                        <TableCell className="sticky left-0 bg-card z-10">Revenue</TableCell>
+                      <TableRow className="font-semibold bg-emerald-50/50 dark:bg-emerald-950/20">
+                        <TableCell className="sticky left-0 bg-emerald-50/50 dark:bg-emerald-950/20 z-10">Revenue</TableCell>
                         {plData.map((d) => (
                           <TableCell key={d.month} className="text-right text-xs text-emerald-600 dark:text-emerald-400">
                             {formatCurrency(d.revenue)}
                           </TableCell>
                         ))}
                       </TableRow>
-                      <TableRow>
-                        <TableCell className="sticky left-0 bg-card z-10 text-muted-foreground">COGS</TableCell>
+                      <TableRow className="bg-muted/30">
+                        <TableCell className="sticky left-0 bg-muted/30 z-10 text-muted-foreground">COGS</TableCell>
                         {plData.map((d) => (
                           <TableCell key={d.month} className="text-right text-xs text-muted-foreground">
                             ({formatCurrency(d.cogs)})
                           </TableCell>
                         ))}
                       </TableRow>
-                      <TableRow className="font-medium">
+                      <TableRow className="font-medium border-y border-border">
                         <TableCell className="sticky left-0 bg-card z-10">Gross Profit</TableCell>
                         {plData.map((d) => (
                           <TableCell key={d.month} className="text-right text-xs">
@@ -1434,8 +1544,8 @@ export function ForecastingPage() {
                           </TableCell>
                         ))}
                       </TableRow>
-                      <TableRow>
-                        <TableCell className="sticky left-0 bg-card z-10 text-muted-foreground">OpEx</TableCell>
+                      <TableRow className="bg-muted/30">
+                        <TableCell className="sticky left-0 bg-muted/30 z-10 text-muted-foreground">OpEx</TableCell>
                         {plData.map((d) => (
                           <TableCell key={d.month} className="text-right text-xs text-muted-foreground">
                             ({formatCurrency(d.opExpenses)})
@@ -1450,16 +1560,16 @@ export function ForecastingPage() {
                           </TableCell>
                         ))}
                       </TableRow>
-                      <TableRow>
-                        <TableCell className="sticky left-0 bg-card z-10 text-muted-foreground">Tax (21%)</TableCell>
+                      <TableRow className="bg-muted/30">
+                        <TableCell className="sticky left-0 bg-muted/30 z-10 text-muted-foreground">Tax (21%)</TableCell>
                         {plData.map((d) => (
                           <TableCell key={d.month} className="text-right text-xs text-muted-foreground">
                             ({formatCurrency(d.tax)})
                           </TableCell>
                         ))}
                       </TableRow>
-                      <TableRow className="font-bold">
-                        <TableCell className="sticky left-0 bg-card z-10">Net Income</TableCell>
+                      <TableRow className="font-bold border-t-2 border-border bg-primary/5">
+                        <TableCell className="sticky left-0 bg-primary/5 z-10">Net Income</TableCell>
                         {plData.map((d) => (
                           <TableCell key={d.month} className={`text-right text-xs ${d.netIncomeAfterTax >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
                             {formatCurrency(d.netIncomeAfterTax)}
@@ -1472,57 +1582,55 @@ export function ForecastingPage() {
               </TabsContent>
 
               <TabsContent value="balance" className="mt-0">
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto rounded-lg border">
                   <Table>
                     <TableHeader>
-                      <TableRow>
-                        <TableHead className="sticky left-0 bg-card z-10 min-w-[120px]">Metric</TableHead>
+                      <TableRow className="bg-muted/50">
+                        <TableHead className="sticky left-0 bg-muted/50 z-10 min-w-[120px] font-semibold">Metric</TableHead>
                         {MONTHS.map((m) => (
-                          <TableHead key={m} className="text-right min-w-[80px]">{m}</TableHead>
+                          <TableHead key={m} className="text-right min-w-[80px] font-semibold">{m}</TableHead>
                         ))}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      <TableRow>
-                        <TableCell className="sticky left-0 bg-card z-10 text-muted-foreground">Current Assets</TableCell>
+                      <TableRow className="bg-muted/30">
+                        <TableCell className="sticky left-0 bg-muted/30 z-10 text-muted-foreground">Current Assets</TableCell>
                         {balanceSheetData.map((d) => (
                           <TableCell key={d.month} className="text-right text-xs">{formatCurrency(d.currentAssets)}</TableCell>
                         ))}
                       </TableRow>
-                      <TableRow>
-                        <TableCell className="sticky left-0 bg-card z-10 text-muted-foreground">Fixed Assets</TableCell>
+                      <TableRow className="bg-muted/30">
+                        <TableCell className="sticky left-0 bg-muted/30 z-10 text-muted-foreground">Fixed Assets</TableCell>
                         {balanceSheetData.map((d) => (
                           <TableCell key={d.month} className="text-right text-xs">{formatCurrency(d.fixedAssets)}</TableCell>
                         ))}
                       </TableRow>
-                      <TableRow className="font-medium">
+                      <TableRow className="font-semibold border-b border-border">
                         <TableCell className="sticky left-0 bg-card z-10">Total Assets</TableCell>
                         {balanceSheetData.map((d) => (
                           <TableCell key={d.month} className="text-right text-xs">{formatCurrency(d.totalAssets)}</TableCell>
                         ))}
                       </TableRow>
-                      <Separator />
-                      <TableRow>
-                        <TableCell className="sticky left-0 bg-card z-10 text-muted-foreground">Current Liabilities</TableCell>
+                      <TableRow className="bg-red-50/30 dark:bg-red-950/10">
+                        <TableCell className="sticky left-0 bg-red-50/30 dark:bg-red-950/10 z-10 text-muted-foreground">Current Liabilities</TableCell>
                         {balanceSheetData.map((d) => (
                           <TableCell key={d.month} className="text-right text-xs text-red-500">{formatCurrency(d.currentLiabilities)}</TableCell>
                         ))}
                       </TableRow>
-                      <TableRow>
-                        <TableCell className="sticky left-0 bg-card z-10 text-muted-foreground">LT Liabilities</TableCell>
+                      <TableRow className="bg-red-50/30 dark:bg-red-950/10">
+                        <TableCell className="sticky left-0 bg-red-50/30 dark:bg-red-950/10 z-10 text-muted-foreground">LT Liabilities</TableCell>
                         {balanceSheetData.map((d) => (
                           <TableCell key={d.month} className="text-right text-xs text-red-500">{formatCurrency(d.longTermLiabilities)}</TableCell>
                         ))}
                       </TableRow>
-                      <TableRow className="font-medium">
+                      <TableRow className="font-semibold border-b border-border">
                         <TableCell className="sticky left-0 bg-card z-10">Total Liabilities</TableCell>
                         {balanceSheetData.map((d) => (
                           <TableCell key={d.month} className="text-right text-xs text-red-500">{formatCurrency(d.totalLiabilities)}</TableCell>
                         ))}
                       </TableRow>
-                      <Separator />
-                      <TableRow className="font-bold">
-                        <TableCell className="sticky left-0 bg-card z-10">Equity</TableCell>
+                      <TableRow className="font-bold border-t-2 border-border bg-primary/5">
+                        <TableCell className="sticky left-0 bg-primary/5 z-10">Equity</TableCell>
                         {balanceSheetData.map((d) => (
                           <TableCell key={d.month} className={`text-right text-xs ${d.equity >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
                             {formatCurrency(d.equity)}
@@ -1535,42 +1643,42 @@ export function ForecastingPage() {
               </TabsContent>
 
               <TabsContent value="cashflow" className="mt-0">
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto rounded-lg border">
                   <Table>
                     <TableHeader>
-                      <TableRow>
-                        <TableHead className="sticky left-0 bg-card z-10 min-w-[120px]">Metric</TableHead>
+                      <TableRow className="bg-muted/50">
+                        <TableHead className="sticky left-0 bg-muted/50 z-10 min-w-[120px] font-semibold">Metric</TableHead>
                         {MONTHS.map((m) => (
-                          <TableHead key={m} className="text-right min-w-[80px]">{m}</TableHead>
+                          <TableHead key={m} className="text-right min-w-[80px] font-semibold">{m}</TableHead>
                         ))}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      <TableRow>
-                        <TableCell className="sticky left-0 bg-card z-10 text-muted-foreground">Operating CF</TableCell>
+                      <TableRow className="bg-muted/30">
+                        <TableCell className="sticky left-0 bg-muted/30 z-10 text-muted-foreground">Operating CF</TableCell>
                         {cashFlowStatementData.map((d) => (
                           <TableCell key={d.month} className={`text-right text-xs ${d.operatingCF >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
                             {formatCurrency(d.operatingCF)}
                           </TableCell>
                         ))}
                       </TableRow>
-                      <TableRow>
-                        <TableCell className="sticky left-0 bg-card z-10 text-muted-foreground">Investing CF</TableCell>
+                      <TableRow className="bg-muted/30">
+                        <TableCell className="sticky left-0 bg-muted/30 z-10 text-muted-foreground">Investing CF</TableCell>
                         {cashFlowStatementData.map((d) => (
                           <TableCell key={d.month} className={`text-right text-xs ${d.investingCF >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
                             {formatCurrency(d.investingCF)}
                           </TableCell>
                         ))}
                       </TableRow>
-                      <TableRow>
-                        <TableCell className="sticky left-0 bg-card z-10 text-muted-foreground">Financing CF</TableCell>
+                      <TableRow className="bg-muted/30">
+                        <TableCell className="sticky left-0 bg-muted/30 z-10 text-muted-foreground">Financing CF</TableCell>
                         {cashFlowStatementData.map((d) => (
                           <TableCell key={d.month} className={`text-right text-xs ${d.financingCF >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
                             {formatCurrency(d.financingCF)}
                           </TableCell>
                         ))}
                       </TableRow>
-                      <TableRow className="font-medium">
+                      <TableRow className="font-medium border-b border-border">
                         <TableCell className="sticky left-0 bg-card z-10">Net Cash Flow</TableCell>
                         {cashFlowStatementData.map((d) => (
                           <TableCell key={d.month} className={`text-right text-xs ${d.netCF >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
@@ -1578,9 +1686,8 @@ export function ForecastingPage() {
                           </TableCell>
                         ))}
                       </TableRow>
-                      <Separator />
-                      <TableRow className="font-bold">
-                        <TableCell className="sticky left-0 bg-card z-10">Cash Balance</TableCell>
+                      <TableRow className="font-bold border-t-2 border-border bg-primary/5">
+                        <TableCell className="sticky left-0 bg-primary/5 z-10">Cash Balance</TableCell>
                         {cashFlowStatementData.map((d) => (
                           <TableCell key={d.month} className={`text-right text-xs ${d.cashBalance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
                             {formatCurrency(d.cashBalance)}
@@ -1611,6 +1718,8 @@ export function ForecastingPage() {
               </div>
             </CardContent>
           </Card>
+        )}
+        </>
         )}
       </div>
     </TooltipProvider>

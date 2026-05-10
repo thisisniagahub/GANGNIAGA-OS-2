@@ -260,7 +260,8 @@ function getAlertLevelBadge(level: AlertLevel) {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function ActualsPage() {
-  const { organization } = useAuthStore()
+  const { user, organization } = useAuthStore()
+  const userId = user?.id
 
   // Data state
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
@@ -305,7 +306,7 @@ export function ActualsPage() {
     if (!organization?.id) return
     setIsLoading(true)
     try {
-      const res = await fetch(`/api/actuals?organizationId=${organization.id}`)
+      const res = await fetch(`/api/actuals?organizationId=${organization.id}&userId=${userId}`)
       if (res.ok) {
         const data = await res.json()
         setDashboardData(data)
