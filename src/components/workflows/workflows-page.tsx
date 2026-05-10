@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -47,11 +47,11 @@ import {
   GitBranch,
   Timer,
   Bell,
-  GripVertical,
   Loader2,
   AlertTriangle,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useAuthStore } from '@/lib/stores/auth-store'
 
 // --- Types ---
 type TriggerType = 'manual' | 'scheduled' | 'event'
@@ -89,116 +89,52 @@ interface WorkflowRun {
   result: string
 }
 
-// --- Mock Data ---
-const mockWorkflows: WorkflowItem[] = [
-  {
-    id: '1',
-    name: 'Weekly KPI Report',
-    description: 'Automatically generate and distribute weekly KPI reports to stakeholders.',
-    triggerType: 'scheduled',
-    status: 'active',
-    schedule: '0 9 * * MON',
-    steps: [
-      { id: 's1', type: 'agent', name: 'Collect KPI Data', config: 'CFO Agent' },
-      { id: 's2', type: 'tool', name: 'Generate PDF', config: 'Report Generator' },
-      { id: 's3', type: 'notification', name: 'Email Report', config: 'stakeholders@company.com' },
-    ],
-    lastRun: '2025-12-15 09:00',
-    nextRun: '2025-12-22 09:00',
-    runCount: 24,
-  },
-  {
-    id: '2',
-    name: 'Competitor Price Monitor',
-    description: 'Monitor competitor pricing changes and alert the team on significant shifts.',
-    triggerType: 'scheduled',
-    status: 'active',
-    schedule: '0 */6 * * *',
-    steps: [
-      { id: 's1', type: 'agent', name: 'Scrape Competitor Sites', config: 'Research Agent' },
-      { id: 's2', type: 'condition', name: 'Price Change > 5%', config: 'threshold: 5%' },
-      { id: 's3', type: 'notification', name: 'Slack Alert', config: '#competitors channel' },
-    ],
-    lastRun: '2025-12-18 12:00',
-    nextRun: '2025-12-18 18:00',
-    runCount: 156,
-  },
-  {
-    id: '3',
-    name: 'Revenue Alert System',
-    description: 'Real-time alerts when revenue drops below threshold or unusual patterns detected.',
-    triggerType: 'event',
-    status: 'active',
-    schedule: 'On: revenue.anomaly',
-    steps: [
-      { id: 's1', type: 'agent', name: 'Analyze Revenue Data', config: 'CFO Agent' },
-      { id: 's2', type: 'condition', name: 'Below Target?', config: 'target: $100K MRR' },
-      { id: 's3', type: 'delay', name: 'Wait 5 min', config: '300 seconds' },
-      { id: 's4', type: 'notification', name: 'Urgent Alert', config: 'CEO + CFO' },
-    ],
-    lastRun: '2025-12-17 03:22',
-    nextRun: 'On trigger',
-    runCount: 8,
-  },
-  {
-    id: '4',
-    name: 'Investor Update Generator',
-    description: 'Compile and format monthly investor update with key metrics and narratives.',
-    triggerType: 'manual',
-    status: 'inactive',
-    schedule: '-',
-    steps: [
-      { id: 's1', type: 'agent', name: 'Gather Metrics', config: 'CFO Agent' },
-      { id: 's2', type: 'agent', name: 'Draft Narrative', config: 'Content Agent' },
-      { id: 's3', type: 'tool', name: 'Format PDF', config: 'Report Generator' },
-    ],
-    lastRun: '2025-11-30 14:00',
-    nextRun: '-',
-    runCount: 3,
-  },
-  {
-    id: '5',
-    name: 'Slack Daily Summary',
-    description: 'Post a daily business summary to the company Slack channel every morning.',
-    triggerType: 'scheduled',
-    status: 'error',
-    schedule: '0 8 * * 1-5',
-    steps: [
-      { id: 's1', type: 'agent', name: 'Aggregate Data', config: 'Growth Agent' },
-      { id: 's2', type: 'tool', name: 'Format Summary', config: 'Slack Formatter' },
-      { id: 's3', type: 'notification', name: 'Post to Slack', config: '#daily-standup' },
-    ],
-    lastRun: '2025-12-18 08:00',
-    nextRun: '2025-12-19 08:00',
-    runCount: 45,
-  },
-]
+// API response types
+interface ApiWorkflow {
+  id: string
+  name: string
+  description: string | null
+  trigger: string
+  schedule: string | null
+  isActive: boolean
+  organizationId: string
+  metadata: string
+  createdAt: string
+  updatedAt: string
+  steps: ApiWorkflowStep[]
+  runs: ApiWorkflowRun[]
+}
 
-const mockRuns: WorkflowRun[] = [
-  { id: 'r1', workflowName: 'Weekly KPI Report', status: 'success', triggeredBy: 'Schedule', startedAt: '2025-12-15 09:00', duration: '2m 34s', result: 'Report sent to 5 recipients' },
-  { id: 'r2', workflowName: 'Competitor Price Monitor', status: 'success', triggeredBy: 'Schedule', startedAt: '2025-12-18 12:00', duration: '45s', result: 'No significant changes detected' },
-  { id: 'r3', workflowName: 'Slack Daily Summary', status: 'failed', triggeredBy: 'Schedule', startedAt: '2025-12-18 08:00', duration: '1m 12s', result: 'Slack API rate limit exceeded' },
-  { id: 'r4', workflowName: 'Revenue Alert System', status: 'success', triggeredBy: 'Event', startedAt: '2025-12-17 03:22', duration: '3m 08s', result: 'Alert sent: MRR below target' },
-  { id: 'r5', workflowName: 'Investor Update Generator', status: 'success', triggeredBy: 'Manual', startedAt: '2025-11-30 14:00', duration: '5m 22s', result: 'Report generated and saved' },
-  { id: 'r6', workflowName: 'Competitor Price Monitor', status: 'success', triggeredBy: 'Schedule', startedAt: '2025-12-18 06:00', duration: '52s', result: '1 price change detected' },
-  { id: 'r7', workflowName: 'Weekly KPI Report', status: 'success', triggeredBy: 'Schedule', startedAt: '2025-12-08 09:00', duration: '2m 18s', result: 'Report sent to 5 recipients' },
-  { id: 'r8', workflowName: 'Slack Daily Summary', status: 'success', triggeredBy: 'Schedule', startedAt: '2025-12-17 08:00', duration: '38s', result: 'Summary posted to #daily-standup' },
-]
+interface ApiWorkflowStep {
+  id: string
+  workflowId: string
+  type: string
+  name: string
+  config: string
+  order: number
+  isActive: boolean
+}
 
+interface ApiWorkflowRun {
+  id: string
+  workflowId: string
+  status: string
+  triggeredBy: string | null
+  result: string | null
+  startedAt: string | null
+  completedAt: string | null
+  metadata: string
+  createdAt: string
+}
+
+// --- Quick Templates ---
 const templateWorkflows = [
-  { id: 'tw1', name: 'Weekly KPI Report', description: 'Generate and distribute weekly KPI reports', triggerType: 'scheduled' as TriggerType, schedule: '0 9 * * MON', icon: BarChart3Icon },
-  { id: 'tw2', name: 'Competitor Monitor', description: 'Monitor competitor activities and pricing', triggerType: 'scheduled' as TriggerType, schedule: '0 */6 * * *', icon: EyeIcon },
-  { id: 'tw3', name: 'Revenue Alert', description: 'Alert on revenue anomalies and thresholds', triggerType: 'event' as TriggerType, schedule: 'On: revenue.anomaly', icon: DollarSignIcon },
-  { id: 'tw4', name: 'Investor Update', description: 'Compile monthly investor updates', triggerType: 'manual' as TriggerType, schedule: '-', icon: FileTextIcon },
-  { id: 'tw5', name: 'Slack Summary', description: 'Daily business summary to Slack', triggerType: 'scheduled' as TriggerType, schedule: '0 8 * * 1-5', icon: MessageIcon },
+  { id: 'tw1', name: 'Weekly KPI Report', description: 'Generate and distribute weekly KPI reports', triggerType: 'scheduled' as TriggerType, schedule: '0 9 * * MON' },
+  { id: 'tw2', name: 'Competitor Monitor', description: 'Monitor competitor activities and pricing', triggerType: 'scheduled' as TriggerType, schedule: '0 */6 * * *' },
+  { id: 'tw3', name: 'Revenue Alert', description: 'Alert on revenue anomalies and thresholds', triggerType: 'event' as TriggerType, schedule: 'revenue.anomaly' },
+  { id: 'tw4', name: 'Investor Update', description: 'Compile monthly investor updates', triggerType: 'manual' as TriggerType, schedule: '-' },
+  { id: 'tw5', name: 'Slack Summary', description: 'Daily business summary to Slack', triggerType: 'scheduled' as TriggerType, schedule: '0 8 * * 1-5' },
 ]
-
-// Placeholder icon components
-function BarChart3Icon(props: React.SVGProps<SVGSVGElement>) { return <Workflow {...props} /> }
-function EyeIcon(props: React.SVGProps<SVGSVGElement>) { return <Zap {...props} /> }
-function DollarSignIcon(props: React.SVGProps<SVGSVGElement>) { return <Zap {...props} /> }
-function FileTextIcon(props: React.SVGProps<SVGSVGElement>) { return <Zap {...props} /> }
-function MessageIcon(props: React.SVGProps<SVGSVGElement>) { return <Zap {...props} /> }
 
 // --- Helpers ---
 const triggerConfig: Record<TriggerType, { label: string; color: string; icon: React.ElementType }> = {
@@ -226,6 +162,82 @@ const runStatusConfig: Record<RunStatus, { label: string; color: string; icon: R
   failed: { label: 'Failed', color: 'text-red-600 dark:text-red-400', icon: AlertTriangle },
   running: { label: 'Running', color: 'text-amber-600 dark:text-amber-400', icon: Loader2 },
   pending: { label: 'Pending', color: 'text-gray-600 dark:text-gray-400', icon: Clock },
+}
+
+// Map API trigger to UI trigger type
+function mapApiTrigger(trigger: string): TriggerType {
+  if (trigger === 'scheduled') return 'scheduled'
+  if (trigger === 'event') return 'event'
+  return 'manual'
+}
+
+// Map API run status to UI run status
+function mapApiRunStatus(status: string): RunStatus {
+  if (status === 'completed') return 'success'
+  if (status === 'failed') return 'failed'
+  if (status === 'running') return 'running'
+  return 'pending'
+}
+
+// Map API workflow to UI workflow
+function mapApiWorkflow(api: ApiWorkflow): WorkflowItem {
+  const triggerType = mapApiTrigger(api.trigger)
+  const lastRun = api.runs.length > 0
+    ? api.runs[0].startedAt
+      ? new Date(api.runs[0].startedAt).toLocaleString()
+      : new Date(api.runs[0].createdAt).toLocaleString()
+    : '-'
+
+  return {
+    id: api.id,
+    name: api.name,
+    description: api.description || '',
+    triggerType,
+    status: api.isActive ? 'active' : 'inactive',
+    schedule: api.schedule || (triggerType === 'manual' ? '-' : 'On trigger'),
+    steps: api.steps.map((s) => ({
+      id: s.id,
+      type: s.type as StepType,
+      name: s.name,
+      config: s.config,
+    })),
+    lastRun,
+    nextRun: triggerType === 'scheduled' && api.schedule ? 'Per schedule' : '-',
+    runCount: api.runs.length,
+  }
+}
+
+// Map API runs to UI runs
+function mapApiRuns(apiWorkflows: ApiWorkflow[]): WorkflowRun[] {
+  const allRuns: WorkflowRun[] = []
+  for (const wf of apiWorkflows) {
+    for (const run of wf.runs) {
+      const startedAt = run.startedAt ? new Date(run.startedAt) : new Date(run.createdAt)
+      const completedAt = run.completedAt ? new Date(run.completedAt) : null
+      let duration = '-'
+      if (completedAt && startedAt) {
+        const diffMs = completedAt.getTime() - startedAt.getTime()
+        const diffSec = Math.floor(diffMs / 1000)
+        if (diffSec < 60) duration = `${diffSec}s`
+        else {
+          const diffMin = Math.floor(diffSec / 60)
+          const remSec = diffSec % 60
+          duration = `${diffMin}m ${remSec}s`
+        }
+      }
+
+      allRuns.push({
+        id: run.id,
+        workflowName: wf.name,
+        status: mapApiRunStatus(run.status),
+        triggeredBy: run.triggeredBy || (mapApiTrigger(wf.trigger) === 'scheduled' ? 'Schedule' : mapApiTrigger(wf.trigger) === 'event' ? 'Event' : 'Manual'),
+        startedAt: startedAt.toLocaleString(),
+        duration,
+        result: run.result || '-',
+      })
+    }
+  }
+  return allRuns.sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())
 }
 
 // --- Sub-Components ---
@@ -445,36 +457,30 @@ function StepBuilder({
   )
 }
 
-function CreateWorkflowDialog({ onCreate }: { onCreate: (workflow: Partial<WorkflowItem>) => void }) {
+function CreateWorkflowDialog({ onCreate, isCreating }: { onCreate: (workflow: Partial<WorkflowItem>) => void; isCreating: boolean }) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [triggerType, setTriggerType] = useState<TriggerType>('manual')
   const [schedule, setSchedule] = useState('')
   const [steps, setSteps] = useState<WorkflowStep[]>([])
-  const [isCreating, setIsCreating] = useState(false)
 
   const handleCreate = () => {
     if (!name.trim()) {
       toast.error('Please enter a workflow name')
       return
     }
-    setIsCreating(true)
-    setTimeout(() => {
-      onCreate({
-        name,
-        description,
-        triggerType,
-        schedule: triggerType === 'scheduled' ? schedule : triggerType === 'event' ? `On: ${schedule}` : '-',
-        steps,
-        status: 'inactive',
-      })
-      setIsCreating(false)
-      setName('')
-      setDescription('')
-      setSchedule('')
-      setSteps([])
-      toast.success('Workflow created successfully!')
-    }, 500)
+    onCreate({
+      name,
+      description,
+      triggerType,
+      schedule: triggerType === 'scheduled' ? schedule : triggerType === 'event' ? `On: ${schedule}` : '-',
+      steps,
+      status: 'inactive',
+    })
+    setName('')
+    setDescription('')
+    setSchedule('')
+    setSteps([])
   }
 
   return (
@@ -556,45 +562,133 @@ function CreateWorkflowDialog({ onCreate }: { onCreate: (workflow: Partial<Workf
 
 // --- Main Component ---
 export function WorkflowsPage() {
-  const [workflows, setWorkflows] = useState<WorkflowItem[]>(mockWorkflows)
-  const [runs] = useState<WorkflowRun[]>(mockRuns)
+  const { organization } = useAuthStore()
+  const [workflows, setWorkflows] = useState<WorkflowItem[]>([])
+  const [runs, setRuns] = useState<WorkflowRun[]>([])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'workflows' | 'history' | 'templates'>('workflows')
+  const [isLoading, setIsLoading] = useState(true)
+  const [isCreating, setIsCreating] = useState(false)
+  const [togglingId, setTogglingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
-  const handleToggle = (id: string) => {
+  // Fetch workflows from API
+  const fetchWorkflows = useCallback(async () => {
+    if (!organization?.id) return
+    setIsLoading(true)
+    try {
+      const res = await fetch(`/api/workflows?organizationId=${organization.id}`)
+      if (!res.ok) throw new Error('Failed to fetch workflows')
+      const data = await res.json()
+
+      const apiWorkflows = (data.workflows || []) as ApiWorkflow[]
+      const mapped = apiWorkflows.map(mapApiWorkflow)
+      setWorkflows(mapped)
+      setRuns(mapApiRuns(apiWorkflows))
+    } catch {
+      toast.error('Failed to load workflows')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [organization?.id])
+
+  useEffect(() => {
+    fetchWorkflows()
+  }, [fetchWorkflows])
+
+  // Toggle workflow active/inactive via API
+  const handleToggle = async (id: string) => {
+    const wf = workflows.find((w) => w.id === id)
+    if (!wf) return
+    const newState = wf.status === 'active' ? false : true
+    setTogglingId(id)
+
+    // Optimistic update
     setWorkflows((prev) =>
       prev.map((w) =>
         w.id === id
-          ? { ...w, status: w.status === 'active' ? 'inactive' : 'active' }
+          ? { ...w, status: newState ? 'active' : 'inactive' }
           : w
       )
     )
-    const wf = workflows.find((w) => w.id === id)
-    const newState = wf?.status === 'active' ? 'paused' : 'activated'
-    toast.success(`Workflow "${wf?.name}" ${newState}`)
-  }
 
-  const handleDelete = (id: string) => {
-    const wf = workflows.find((w) => w.id === id)
-    setWorkflows((prev) => prev.filter((w) => w.id !== id))
-    toast.success(`Workflow "${wf?.name}" deleted`)
-  }
-
-  const handleCreate = (partial: Partial<WorkflowItem>) => {
-    const newWorkflow: WorkflowItem = {
-      id: String(Date.now()),
-      name: partial.name || 'Untitled Workflow',
-      description: partial.description || '',
-      triggerType: partial.triggerType || 'manual',
-      status: partial.status || 'inactive',
-      schedule: partial.schedule || '-',
-      steps: partial.steps || [],
-      lastRun: '-',
-      nextRun: partial.triggerType === 'scheduled' ? 'Pending' : '-',
-      runCount: 0,
+    try {
+      const res = await fetch(`/api/workflows/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: newState }),
+      })
+      if (!res.ok) throw new Error('Failed to toggle workflow')
+      toast.success(`Workflow "${wf.name}" ${newState ? 'activated' : 'paused'}`)
+    } catch {
+      // Revert on error
+      setWorkflows((prev) =>
+        prev.map((w) =>
+          w.id === id ? { ...w, status: wf.status } : w
+        )
+      )
+      toast.error('Failed to toggle workflow')
+    } finally {
+      setTogglingId(null)
     }
-    setWorkflows((prev) => [newWorkflow, ...prev])
-    setDialogOpen(false)
+  }
+
+  // Delete workflow via API
+  const handleDelete = async (id: string) => {
+    const wf = workflows.find((w) => w.id === id)
+    if (!wf) return
+    setDeletingId(id)
+
+    try {
+      const res = await fetch(`/api/workflows/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Failed to delete workflow')
+
+      setWorkflows((prev) => prev.filter((w) => w.id !== id))
+      setRuns((prev) => prev.filter((r) => r.workflowName !== wf.name))
+      toast.success(`Workflow "${wf.name}" deleted`)
+    } catch {
+      toast.error('Failed to delete workflow')
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  // Create workflow via API
+  const handleCreate = async (partial: Partial<WorkflowItem>) => {
+    if (!organization?.id) return
+    setIsCreating(true)
+
+    try {
+      const res = await fetch('/api/workflows', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          organizationId: organization.id,
+          name: partial.name,
+          description: partial.description,
+          triggerType: partial.triggerType,
+          schedule: partial.schedule !== '-' ? partial.schedule : null,
+          steps: (partial.steps || []).map((s) => ({
+            type: s.type,
+            name: s.name,
+            config: s.config,
+          })),
+        }),
+      })
+
+      if (!res.ok) throw new Error('Failed to create workflow')
+
+      const data = await res.json()
+      const newWorkflow = mapApiWorkflow(data.workflow)
+
+      setWorkflows((prev) => [newWorkflow, ...prev])
+      setDialogOpen(false)
+      toast.success('Workflow created successfully!')
+    } catch {
+      toast.error('Failed to create workflow. Please try again.')
+    } finally {
+      setIsCreating(false)
+    }
   }
 
   const handleTemplateCreate = (template: typeof templateWorkflows[number]) => {
@@ -608,6 +702,11 @@ export function WorkflowsPage() {
         { id: `s-${Date.now()}-2`, type: 'notification', name: 'Notify', config: '' },
       ],
     })
+  }
+
+  const handleRefresh = () => {
+    fetchWorkflows()
+    toast.success('Workflows refreshed')
   }
 
   return (
@@ -625,12 +724,12 @@ export function WorkflowsPage() {
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button size="sm">
+            <Button size="sm" disabled={isCreating}>
               <Plus className="w-4 h-4 mr-1" />
               Create Workflow
             </Button>
           </DialogTrigger>
-          <CreateWorkflowDialog onCreate={handleCreate} />
+          <CreateWorkflowDialog onCreate={handleCreate} isCreating={isCreating} />
         </Dialog>
       </div>
 
@@ -654,7 +753,12 @@ export function WorkflowsPage() {
       {/* Workflows Tab */}
       {activeTab === 'workflows' && (
         <div>
-          {workflows.length === 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              <span className="ml-2 text-sm text-muted-foreground">Loading workflows...</span>
+            </div>
+          ) : workflows.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Workflow className="w-10 h-10 text-muted-foreground/40 mb-3" />
@@ -689,48 +793,55 @@ export function WorkflowsPage() {
                 <CardTitle className="text-base">Execution History</CardTitle>
                 <CardDescription>Recent workflow runs and their results</CardDescription>
               </div>
-              <Button variant="outline" size="sm" className="h-8">
+              <Button variant="outline" size="sm" className="h-8" onClick={handleRefresh}>
                 <RefreshCw className="w-3 h-3 mr-1" />
                 Refresh
               </Button>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-xs">Workflow</TableHead>
-                    <TableHead className="text-xs">Status</TableHead>
-                    <TableHead className="text-xs">Triggered By</TableHead>
-                    <TableHead className="text-xs">Started</TableHead>
-                    <TableHead className="text-xs">Duration</TableHead>
-                    <TableHead className="text-xs">Result</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {runs.map((run) => {
-                    const runStatus = runStatusConfig[run.status]
-                    const RunIcon = runStatus.icon
-                    return (
-                      <TableRow key={run.id}>
-                        <TableCell className="text-xs font-medium">{run.workflowName}</TableCell>
-                        <TableCell>
-                          <div className={`flex items-center gap-1 text-xs ${runStatus.color}`}>
-                            <RunIcon className={`w-3.5 h-3.5 ${run.status === 'running' ? 'animate-spin' : ''}`} />
-                            {runStatus.label}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{run.triggeredBy}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{run.startedAt}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{run.duration}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground max-w-48 truncate">{run.result}</TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+            {runs.length === 0 ? (
+              <div className="text-center py-8">
+                <Clock className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">No execution history yet</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Workflow</TableHead>
+                      <TableHead className="text-xs">Status</TableHead>
+                      <TableHead className="text-xs">Triggered By</TableHead>
+                      <TableHead className="text-xs">Started</TableHead>
+                      <TableHead className="text-xs">Duration</TableHead>
+                      <TableHead className="text-xs">Result</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {runs.map((run) => {
+                      const runStatus = runStatusConfig[run.status]
+                      const RunIcon = runStatus.icon
+                      return (
+                        <TableRow key={run.id}>
+                          <TableCell className="text-xs font-medium">{run.workflowName}</TableCell>
+                          <TableCell>
+                            <div className={`flex items-center gap-1 text-xs ${runStatus.color}`}>
+                              <RunIcon className={`w-3.5 h-3.5 ${run.status === 'running' ? 'animate-spin' : ''}`} />
+                              {runStatus.label}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{run.triggeredBy}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{run.startedAt}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{run.duration}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground max-w-48 truncate">{run.result}</TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

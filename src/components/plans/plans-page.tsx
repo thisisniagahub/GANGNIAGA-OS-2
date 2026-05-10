@@ -279,6 +279,89 @@ export function PlansPage() {
     }
   }
 
+  // Save section content to backend
+  const handleSaveSection = async (sectionId: string) => {
+    if (!selectedPlan) return
+    const newContent = editingSections[sectionId]
+    if (newContent === undefined) return
+
+    setSavingSections((prev) => ({ ...prev, [sectionId]: true }))
+    try {
+      const res = await fetch(`/api/plans/${selectedPlan.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sections: [{ id: sectionId, content: newContent }],
+        }),
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        toast.success('Section saved successfully')
+        // Update the selected plan with the returned data
+        if (data.plan) {
+          setSelectedPlan(data.plan)
+        }
+      } else {
+        toast.error('Failed to save section')
+      }
+    } catch {
+      toast.error('Failed to save section')
+    } finally {
+      setSavingSections((prev) => ({ ...prev, [sectionId]: false }))
+    }
+  }
+
+  // Change plan status
+  const handleStatusChange = async (newStatus: string) => {
+    if (!selectedPlan) return
+
+    try {
+      const res = await fetch(`/api/plans/${selectedPlan.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        toast.success(`Plan status updated to ${STATUS_CONFIG[newStatus]?.label || newStatus}`)
+        if (data.plan) {
+          setSelectedPlan(data.plan)
+          // Also update the plan in the list
+          setPlans((prev) =>
+            prev.map((p) => (p.id === data.plan.id ? data.plan : p))
+          )
+        }
+      } else {
+        toast.error('Failed to update status')
+      }
+    } catch {
+      toast.error('Failed to update status')
+    }
+  }
+
+  // Delete plan
+  const handleDeletePlan = async () => {
+    if (!selectedPlan) return
+
+    try {
+      const res = await fetch(`/api/plans/${selectedPlan.id}`, {
+        method: 'DELETE',
+      })
+
+      if (res.ok) {
+        toast.success('Plan deleted successfully')
+        setPlans((prev) => prev.filter((p) => p.id !== selectedPlan.id))
+        setSelectedPlan(null)
+      } else {
+        toast.error('Failed to delete plan')
+      }
+    } catch {
+      toast.error('Failed to delete plan')
+    }
+  }
+
   // AI Rewrite section
   const handleAIRewrite = async (section: PlanSection) => {
     if (!selectedPlan) return
@@ -368,7 +451,36 @@ export function PlansPage() {
               </p>
             )}
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            {/* Status Dropdown */}
+            <Select value={selectedPlan.status} onValueChange={handleStatusChange}>
+              <SelectTrigger className="w-[130px] h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="draft">
+                  <span className="flex items-center gap-1.5">
+                    <Edit className="w-3 h-3" /> Draft
+                  </span>
+                </SelectItem>
+                <SelectItem value="review">
+                  <span className="flex items-center gap-1.5">
+                    <Eye className="w-3 h-3" /> In Review
+                  </span>
+                </SelectItem>
+                <SelectItem value="approved">
+                  <span className="flex items-center gap-1.5">
+                    <CheckCircle className="w-3 h-3" /> Approved
+                  </span>
+                </SelectItem>
+                <SelectItem value="archived">
+                  <span className="flex items-center gap-1.5">
+                    <Archive className="w-3 h-3" /> Archived
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <Separator orientation="vertical" className="h-6" />
             <Button variant="outline" size="sm" onClick={() => toast.info('PDF export coming soon!')}>
               <Download className="w-4 h-4 mr-1" />
               PDF
@@ -376,6 +488,16 @@ export function PlansPage() {
             <Button variant="outline" size="sm" onClick={() => toast.info('DOCX export coming soon!')}>
               <Download className="w-4 h-4 mr-1" />
               DOCX
+            </Button>
+            <Separator orientation="vertical" className="h-6" />
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleDeletePlan}
+              className="gap-1"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Delete
             </Button>
           </div>
         </div>
@@ -446,27 +568,46 @@ export function PlansPage() {
                     <CollapsibleContent>
                       <CardContent className="pt-0 pb-4 space-y-3">
                         <Separator />
-                        {/* AI Rewrite Button */}
+                        {/* Action Buttons */}
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-muted-foreground">
                             {editContent
                               ? `${editContent.length} characters`
                               : 'No content yet'}
-                          </span>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleAIRewrite(section)}
-                            disabled={isRewriting}
-                            className="gap-1.5 text-xs h-7"
-                          >
-                            {isRewriting ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                            ) : (
-                              <Wand2 className="w-3 h-3" />
+                            {editContent !== section.content && editContent !== undefined && (
+                              <span className="ml-2 text-amber-500">• Unsaved changes</span>
                             )}
-                            {isRewriting ? 'Rewriting...' : 'AI Rewrite'}
-                          </Button>
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => handleSaveSection(section.id)}
+                              disabled={isSaving || editContent === section.content}
+                              className="gap-1.5 text-xs h-7"
+                            >
+                              {isSaving ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <CheckCircle className="w-3 h-3" />
+                              )}
+                              {isSaving ? 'Saving...' : 'Save'}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleAIRewrite(section)}
+                              disabled={isRewriting}
+                              className="gap-1.5 text-xs h-7"
+                            >
+                              {isRewriting ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <Wand2 className="w-3 h-3" />
+                              )}
+                              {isRewriting ? 'Rewriting...' : 'AI Rewrite'}
+                            </Button>
+                          </div>
                         </div>
                         {/* Editable Text Area */}
                         <Textarea

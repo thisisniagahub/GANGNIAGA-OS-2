@@ -231,21 +231,36 @@ function OrganizationSection() {
   const [currency, setCurrency] = useState(organization?.currency || 'USD')
   const [saving, setSaving] = useState(false)
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!organization?.id) return
     setSaving(true)
-    setTimeout(() => {
-      if (organization) {
-        setOrganization({
-          ...organization,
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          organizationId: organization.id,
           name: orgName,
           industry,
           size: companySize,
+          country,
           currency,
-        })
-      }
-      setSaving(false)
+        }),
+      })
+      if (!res.ok) throw new Error('Failed to save')
+      setOrganization({
+        ...organization,
+        name: orgName,
+        industry,
+        size: companySize,
+        currency,
+      })
       toast.success('Organization settings updated!')
-    }, 500)
+    } catch {
+      toast.error('Failed to save organization settings')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (

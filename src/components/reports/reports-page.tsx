@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import ReactMarkdown from 'react-markdown'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Select,
   SelectContent,
@@ -33,13 +35,13 @@ import {
   CheckCircle,
   Zap,
   ExternalLink,
-  Calendar,
   FileSpreadsheet,
   FileImage,
   Table,
   Loader2,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useAuthStore } from '@/lib/stores/auth-store'
 
 // --- Types ---
 type ReportType = 'investor' | 'board' | 'kpi' | 'financial' | 'market'
@@ -56,78 +58,10 @@ interface Report {
   size: string
   aiGenerated: boolean
   description: string
+  content?: string // JSON string from API
 }
 
-// --- Mock Data ---
-const mockReports: Report[] = [
-  {
-    id: '1',
-    title: 'Q4 2025 Investor Update',
-    type: 'investor',
-    format: 'pdf',
-    status: 'ready',
-    date: '2025-12-15',
-    size: '2.4 MB',
-    aiGenerated: true,
-    description: 'Comprehensive quarterly update for investors covering financials, growth metrics, and strategic initiatives.',
-  },
-  {
-    id: '2',
-    title: 'Monthly Financial Summary - November',
-    type: 'financial',
-    format: 'xlsx',
-    status: 'ready',
-    date: '2025-12-01',
-    size: '1.8 MB',
-    aiGenerated: true,
-    description: 'Detailed P&L, balance sheet, and cash flow statement for November 2025.',
-  },
-  {
-    id: '3',
-    title: 'Weekly KPI Dashboard',
-    type: 'kpi',
-    format: 'pdf',
-    status: 'generating',
-    date: '2025-12-18',
-    size: '-',
-    aiGenerated: true,
-    description: 'Weekly performance metrics across all business verticals.',
-  },
-  {
-    id: '4',
-    title: 'Board Meeting Deck - December',
-    type: 'board',
-    format: 'pptx',
-    status: 'ready',
-    date: '2025-12-10',
-    size: '5.2 MB',
-    aiGenerated: false,
-    description: 'Presentation deck for the December board meeting with strategic recommendations.',
-  },
-  {
-    id: '5',
-    title: 'Market Analysis - Southeast Asia',
-    type: 'market',
-    format: 'docx',
-    status: 'scheduled',
-    date: '2025-12-20',
-    size: '-',
-    aiGenerated: true,
-    description: 'Deep-dive market analysis for expansion opportunities in Southeast Asia.',
-  },
-  {
-    id: '6',
-    title: 'Annual KPI Report 2025',
-    type: 'kpi',
-    format: 'pdf',
-    status: 'draft',
-    date: '2025-12-12',
-    size: '0.5 MB',
-    aiGenerated: false,
-    description: 'Annual key performance indicators report for fiscal year 2025.',
-  },
-]
-
+// --- Quick Templates ---
 const quickTemplates = [
   {
     id: 't1',
@@ -185,6 +119,13 @@ const statusConfig: Record<ReportStatus, { label: string; color: string; icon: R
   generating: { label: 'Generating', color: 'bg-amber-100 text-amber-800 dark:bg-amber-950/30 dark:text-amber-400', icon: Loader2 },
   scheduled: { label: 'Scheduled', color: 'bg-sky-100 text-sky-800 dark:bg-sky-950/30 dark:text-sky-400', icon: Clock },
   draft: { label: 'Draft', color: 'bg-gray-100 text-gray-800 dark:bg-gray-950/30 dark:text-gray-400', icon: FileText },
+}
+
+// Map API report status to UI status
+function mapApiStatus(status: string): ReportStatus {
+  if (status === 'generated' || status === 'approved' || status === 'sent') return 'ready'
+  if (status === 'draft') return 'draft'
+  return 'ready'
 }
 
 // --- Sub-Components ---
@@ -250,15 +191,36 @@ function ReportPreviewPanel({ report, onClose }: { report: Report; onClose: () =
   const formatInfo = formatConfig[report.format]
   const FormatIcon = formatInfo.icon
 
-  const sectionMap: Record<ReportType, string[]> = {
-    investor: ['Executive Summary', 'Financial Highlights', 'Key Metrics', 'Growth Analysis', 'Strategic Outlook', 'Risk Factors'],
-    board: ['Company Overview', 'Financial Performance', 'Operational Updates', 'Strategic Initiatives', 'Team & Culture', 'Recommendations'],
-    kpi: ['Dashboard Summary', 'Revenue Metrics', 'Customer Metrics', 'Operational Metrics', 'Trend Analysis', 'Action Items'],
-    financial: ['Income Statement', 'Balance Sheet', 'Cash Flow Statement', 'Budget vs Actual', 'Variance Analysis', 'Forecasts'],
-    market: ['Market Overview', 'Competitive Landscape', 'Market Size & Growth', 'Customer Segments', 'Opportunities', 'Recommendations'],
+  // Parse AI-generated content from the report
+  let parsedContent: { fullContent?: string; sections?: string[]; title?: string; error?: boolean } = {}
+  try {
+    if (report.content) {
+      parsedContent = JSON.parse(report.content)
+    }
+  } catch {
+    parsedContent = { fullContent: report.content }
   }
 
-  const sections = sectionMap[report.type] || []
+  // Extract sections from markdown content
+  const extractSections = (markdown: string | undefined) => {
+    if (!markdown) return []
+    const sectionRegex = /^##\s+(.+)$/gm
+    const sections: { title: string; content: string }[] = []
+    let match
+    while ((match = sectionRegex.exec(markdown)) !== null) {
+      sections.push({ title: match[1], content: '' })
+    }
+    // If no ## headers found, try # headers
+    if (sections.length === 0) {
+      const h1Regex = /^#\s+(.+)$/gm
+      while ((match = h1Regex.exec(markdown)) !== null) {
+        sections.push({ title: match[1], content: '' })
+      }
+    }
+    return sections
+  }
+
+  const markdownSections = extractSections(parsedContent.fullContent)
 
   return (
     <div className="space-y-4">
@@ -329,60 +291,81 @@ function ReportPreviewPanel({ report, onClose }: { report: Report; onClose: () =
             </div>
           </div>
 
-          {/* Content sections preview */}
-          <div>
-            <h4 className="text-sm font-semibold mb-3">Report Sections</h4>
-            <div className="space-y-2">
-              {sections.map((section, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors"
-                >
-                  <div className="flex items-center justify-center w-7 h-7 rounded-md bg-primary/10 text-primary text-xs font-bold shrink-0">
-                    {i + 1}
+          {/* AI-generated content preview */}
+          {parsedContent.fullContent ? (
+            <div>
+              <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                <Zap className="w-4 h-4 text-primary" />
+                AI-Generated Report Content
+              </h4>
+              {markdownSections.length > 0 && (
+                <div className="mb-4">
+                  <h5 className="text-xs font-medium text-muted-foreground mb-2">Sections</h5>
+                  <div className="flex flex-wrap gap-2">
+                    {markdownSections.map((section, i) => (
+                      <Badge key={i} variant="outline" className="text-[10px]">
+                        {i + 1}. {section.title}
+                      </Badge>
+                    ))}
                   </div>
-                  <span className="text-sm">{section}</span>
-                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground ml-auto" />
                 </div>
-              ))}
+              )}
+              <ScrollArea className="max-h-[500px]">
+                <div className="prose-ai text-sm p-4 border rounded-lg bg-card">
+                  <ReactMarkdown>{parsedContent.fullContent}</ReactMarkdown>
+                </div>
+              </ScrollArea>
             </div>
-          </div>
+          ) : (
+            <div>
+              <h4 className="text-sm font-semibold mb-3">Report Sections</h4>
+              <div className="space-y-2">
+                {(parsedContent.sections || []).length > 0 ? (
+                  (parsedContent.sections as string[]).map((section: string, i: number) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors"
+                    >
+                      <div className="flex items-center justify-center w-7 h-7 rounded-md bg-primary/10 text-primary text-xs font-bold shrink-0">
+                        {i + 1}
+                      </div>
+                      <span className="text-sm">{section}</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-muted-foreground ml-auto" />
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-muted-foreground text-center py-4">
+                    No content available yet. Generate this report to see AI content.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
   )
 }
 
-function GenerateReportDialog({ onGenerate }: { onGenerate: (report: Partial<Report>) => void }) {
+function GenerateReportDialog({
+  onGenerate,
+  isGenerating,
+}: {
+  onGenerate: (data: { title: string; type: ReportType; format: ReportFormat; aiGenerate: boolean }) => void
+  isGenerating: boolean
+}) {
   const [title, setTitle] = useState('')
   const [type, setType] = useState<ReportType>('kpi')
   const [format, setFormat] = useState<ReportFormat>('pdf')
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo] = useState('')
   const [aiGenerate, setAiGenerate] = useState(true)
-  const [isGenerating, setIsGenerating] = useState(false)
 
   const handleGenerate = () => {
     if (!title.trim()) {
       toast.error('Please enter a report title')
       return
     }
-    setIsGenerating(true)
-    setTimeout(() => {
-      onGenerate({
-        title,
-        type,
-        format,
-        status: aiGenerate ? 'generating' : 'draft',
-        aiGenerated: aiGenerate,
-        description: `Custom ${typeConfig[type].label.toLowerCase()} report${aiGenerate ? ' generated by AI' : ''}.`,
-      })
-      setIsGenerating(false)
-      setTitle('')
-      setDateFrom('')
-      setDateTo('')
-      toast.success('Report generation started!')
-    }, 800)
+    onGenerate({ title, type, format, aiGenerate })
+    setTitle('')
   }
 
   return (
@@ -437,27 +420,6 @@ function GenerateReportDialog({ onGenerate }: { onGenerate: (report: Partial<Rep
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="date-from">From Date</Label>
-            <Input
-              id="date-from"
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="date-to">To Date</Label>
-            <Input
-              id="date-to"
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-            />
-          </div>
-        </div>
-
         <Separator />
 
         <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
@@ -475,7 +437,7 @@ function GenerateReportDialog({ onGenerate }: { onGenerate: (report: Partial<Rep
           {isGenerating ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Generating...
+              Generating with AI...
             </>
           ) : (
             <>
@@ -491,40 +453,135 @@ function GenerateReportDialog({ onGenerate }: { onGenerate: (report: Partial<Rep
 
 // --- Main Component ---
 export function ReportsPage() {
-  const [reports, setReports] = useState<Report[]>(mockReports)
+  const { organization } = useAuthStore()
+  const [reports, setReports] = useState<Report[]>([])
   const [selectedReport, setSelectedReport] = useState<Report | null>(null)
   const [filterType, setFilterType] = useState<string>('all')
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isGenerating, setIsGenerating] = useState(false)
+
+  // Fetch reports from API
+  const fetchReports = useCallback(async () => {
+    if (!organization?.id) return
+    setIsLoading(true)
+    try {
+      const res = await fetch(`/api/reports?organizationId=${organization.id}`)
+      if (!res.ok) throw new Error('Failed to fetch reports')
+      const data = await res.json()
+
+      const mappedReports: Report[] = (data.reports || []).map((r: Record<string, unknown>) => ({
+        id: r.id as string,
+        title: r.title as string,
+        type: (r.type as ReportType) || 'kpi',
+        format: (r.format as ReportFormat) || 'pdf',
+        status: mapApiStatus(r.status as string),
+        date: new Date(r.createdAt as string).toISOString().split('T')[0],
+        size: r.content ? `${(JSON.stringify(r.content).length / 1024).toFixed(1)} KB` : '-',
+        aiGenerated: !!r.content && r.content !== '{}',
+        description: (r.content ? extractDescription(r.content as string) : `${(r.type as string) || 'Custom'} report`) as string,
+        content: r.content as string,
+      }))
+
+      setReports(mappedReports)
+    } catch {
+      toast.error('Failed to load reports')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [organization?.id])
+
+  useEffect(() => {
+    fetchReports()
+  }, [fetchReports])
+
+  // Extract a short description from report content
+  function extractDescription(contentStr: string): string {
+    try {
+      const parsed = JSON.parse(contentStr)
+      if (parsed.fullContent) {
+        // Get first paragraph after any headers
+        const lines = parsed.fullContent.split('\n').filter((l: string) => l.trim() && !l.startsWith('#'))
+        return lines.slice(0, 2).join(' ').slice(0, 150) + (lines.join(' ').length > 150 ? '...' : '')
+      }
+    } catch {
+      // ignore
+    }
+    return 'AI-generated report'
+  }
 
   const filteredReports = filterType === 'all'
     ? reports
     : reports.filter((r) => r.type === filterType)
 
-  const handleGenerate = (partial: Partial<Report>) => {
-    const newReport: Report = {
-      id: String(Date.now()),
-      title: partial.title || 'Untitled Report',
-      type: partial.type || 'kpi',
-      format: partial.format || 'pdf',
-      status: partial.status || 'draft',
+  // Generate report via real API
+  const handleGenerate = async (data: { title: string; type: ReportType; format: ReportFormat; aiGenerate: boolean }) => {
+    if (!organization?.id) return
+    setIsGenerating(true)
+
+    // Add a "generating" placeholder
+    const tempId = `temp-${Date.now()}`
+    const tempReport: Report = {
+      id: tempId,
+      title: data.title,
+      type: data.type,
+      format: data.format,
+      status: 'generating',
       date: new Date().toISOString().split('T')[0],
       size: '-',
-      aiGenerated: partial.aiGenerated || false,
-      description: partial.description || 'Custom report.',
+      aiGenerated: data.aiGenerate,
+      description: `Custom ${typeConfig[data.type].label.toLowerCase()} report${data.aiGenerate ? ' being generated by AI' : ''}.`,
     }
-    setReports((prev) => [newReport, ...prev])
+    setReports((prev) => [tempReport, ...prev])
     setDialogOpen(false)
 
-    // Simulate generation completion
-    if (newReport.status === 'generating') {
-      setTimeout(() => {
-        setReports((prev) =>
-          prev.map((r) =>
-            r.id === newReport.id ? { ...r, status: 'ready' as ReportStatus, size: '1.2 MB' } : r
-          )
+    try {
+      const res = await fetch('/api/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          organizationId: organization.id,
+          title: data.title,
+          type: data.type,
+          format: data.format,
+        }),
+      })
+
+      if (!res.ok) throw new Error('Failed to generate report')
+
+      const result = await res.json()
+      const newReport = result.report
+
+      // Replace the temp report with the real one
+      setReports((prev) =>
+        prev.map((r) =>
+          r.id === tempId
+            ? {
+                id: newReport.id,
+                title: newReport.title,
+                type: newReport.type as ReportType,
+                format: newReport.format as ReportFormat,
+                status: mapApiStatus(newReport.status),
+                date: new Date(newReport.createdAt).toISOString().split('T')[0],
+                size: newReport.content ? `${(JSON.stringify(newReport.content).length / 1024).toFixed(1)} KB` : '-',
+                aiGenerated: !!newReport.content && newReport.content !== '{}',
+                description: extractDescription(newReport.content),
+                content: newReport.content,
+              }
+            : r
         )
-        toast.success(`"${newReport.title}" is ready!`)
-      }, 3000)
+      )
+      toast.success(`"${data.title}" is ready!`)
+    } catch {
+      // Mark the temp report as draft on error
+      setReports((prev) =>
+        prev.map((r) =>
+          r.id === tempId ? { ...r, status: 'draft' as ReportStatus } : r
+        )
+      )
+      toast.error('Failed to generate report. Please try again.')
+    } finally {
+      setIsGenerating(false)
     }
   }
 
@@ -533,10 +590,13 @@ export function ReportsPage() {
       title: template.title,
       type: template.type,
       format: template.format,
-      status: 'generating',
-      aiGenerated: true,
-      description: template.description,
+      aiGenerate: true,
     })
+  }
+
+  const handleRefresh = () => {
+    fetchReports()
+    toast.success('Reports refreshed')
   }
 
   // --- Report Preview Mode ---
@@ -567,12 +627,12 @@ export function ReportsPage() {
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button size="sm">
+            <Button size="sm" disabled={isGenerating}>
               <Plus className="w-4 h-4 mr-1" />
               Generate Report
             </Button>
           </DialogTrigger>
-          <GenerateReportDialog onGenerate={handleGenerate} />
+          <GenerateReportDialog onGenerate={handleGenerate} isGenerating={isGenerating} />
         </Dialog>
       </div>
 
@@ -636,14 +696,19 @@ export function ReportsPage() {
                 <SelectItem value="market">Market</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" size="sm" className="h-8">
-              <RefreshCw className="w-3 h-3 mr-1" />
+            <Button variant="outline" size="sm" className="h-8" onClick={handleRefresh} disabled={isLoading}>
+              <RefreshCw className={`w-3 h-3 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
           </div>
         </div>
 
-        {filteredReports.length === 0 ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            <span className="ml-2 text-sm text-muted-foreground">Loading reports...</span>
+          </div>
+        ) : filteredReports.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <FileText className="w-10 h-10 text-muted-foreground/40 mb-3" />

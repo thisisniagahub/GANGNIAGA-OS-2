@@ -128,3 +128,150 @@ Work Log:
 
 Stage Summary:
 - Files: src/app/api/forecasts/route.ts, src/app/api/agents/route.ts, src/app/api/reports/route.ts, src/app/api/plans/[id]/route.ts
+
+---
+Task ID: API-ROUTES
+Agent: API Routes Agent
+Task: Create missing API routes
+
+Work Log:
+- Created GET/POST /api/kpis/route.ts — KPIs CRUD with organizationId filter and full field creation
+- Created GET/POST /api/workflows/route.ts — Workflows with nested steps creation and include steps + recent runs
+- Created PATCH/DELETE /api/workflows/[id]/route.ts — Workflow update (with step replacement) and deletion
+- Created GET/POST/PATCH /api/notifications/route.ts — Notifications with session cookie fallback for userId
+- Created GET/PATCH /api/settings/route.ts — Organization settings with memberships and users
+- Created GET/DELETE /api/chat/[id]/route.ts — Chat session detail with messages and session deletion
+- Created GET/POST /api/exports/route.ts — Export history and processing export creation
+- All routes follow existing patterns: import db from @/lib/db, use cookies from next/headers for session resolution
+- All routes have proper validation, error handling, and follow Next.js 16 App Router conventions
+- Lint check passes cleanly
+
+Stage Summary:
+- 7 new API route files created covering: KPIs, Workflows, Notifications, Settings, Chat sessions, Exports
+- All routes follow consistent patterns with existing codebase
+- Files: src/app/api/kpis/route.ts, src/app/api/workflows/route.ts, src/app/api/workflows/[id]/route.ts, src/app/api/notifications/route.ts, src/app/api/settings/route.ts, src/app/api/chat/[id]/route.ts, src/app/api/exports/route.ts
+
+---
+Task ID: DASHBOARD-FIX
+Agent: Dashboard Fix Agent
+Task: Fix Dashboard page to fetch real data from APIs
+
+Work Log:
+- Reviewed existing dashboard-page.tsx with hardcoded data (440 lines)
+- Reviewed auth store (useAuthStore with organization.id, user.id)
+- Reviewed existing /api/agents route (GET returns sessions with tasks)
+- Reviewed existing /api/kpis route from previous API-ROUTES task
+- Rewrote /api/kpis/route.ts with proper period filtering (this_month, last_month, this_quarter, this_year) and category filter, plus aggregated stats
+- Rewrote dashboard-page.tsx (580+ lines) with:
+  1. Real KPI data fetching from GET /api/kpis?organizationId=xxx&period=xxx using useAuthStore
+  2. Loading skeleton states for all sections (KPI cards, SaaS metrics, charts, AI insights, agents, financial health)
+  3. Empty state handling when no KPI or agent data exists (EmptyState component)
+  4. Functional Refresh button that refetches both KPIs and agents with spinning animation
+  5. Real agent status from GET /api/agents with session/task display, status badges, time-ago formatting
+  6. Chart data labeled as "Demo Data" with Badge indicators (revenue, expenses, customer, pie charts)
+  7. Date range selector (Select dropdown: This Month, Last Month, This Quarter, This Year) that filters API calls
+  8. Dynamic AI insights computed from real KPI data (revenue growth, burn rate warnings, LTV:CAC, churn analysis)
+  9. Dynamic financial health from real KPIs (cash runway, break-even progress, LTV:CAC ratio)
+  10. Helper functions: formatKpiValue, computeChange, getTimeAgo, getAgentDisplayName, getAgentStatusDisplay
+
+Stage Summary:
+- Dashboard now fetches real data from APIs instead of hardcoded values
+- KPI cards, SaaS metrics, AI insights, financial health all driven by real database data
+- Agent status pulled from real agent sessions/tasks
+- Charts kept with demo data but clearly labeled with "Demo Data" badges
+- Professional loading skeletons and empty states throughout
+- Date range selector filters KPI data by period
+- Refresh button refetches all data
+- Files: src/components/dashboard/dashboard-page.tsx, src/app/api/kpis/route.ts
+
+---
+Task ID: PLANS-FORECAST-FIX
+Agent: Main Agent
+Task: Fix Business Plans and Financial Forecasting pages to use real API data
+
+Work Log:
+- Plans Page (plans-page.tsx):
+  - Added Save button per section that calls PATCH /api/plans/[planId] with { sections: [{ id, content }] }
+  - Added "Unsaved changes" indicator when textarea content differs from saved content
+  - Added status dropdown in editor header (draft → review → approved → archived) calling PATCH /api/plans/[planId] with { status }
+  - Added "Delete Plan" button in editor header calling DELETE /api/plans/[planId] with navigation back to list
+  - Plan list already fetched from real API (GET /api/plans?organizationId=xxx) with loading skeletons
+  - Status changes also update the plan in the list state
+
+- Forecasting Page (forecasting-page.tsx):
+  - Added "Save Forecast" button that opens a dialog to name and save via POST /api/forecasts
+  - Maps frontend RevenueItem/ExpenseItem to API format (monthlyAmount→amount, startMonth number→string)
+  - Added "Load" button that opens a dialog listing saved forecasts from GET /api/forecasts?organizationId=xxx
+  - Saved forecasts shown with name, type badge, date range, and item counts
+  - Loading a forecast maps API data back to frontend format and updates all state
+  - Added "New Forecast" button that resets form to defaults
+  - Shows "Editing saved forecast" indicator when a saved forecast is loaded
+  - Fetches saved forecasts on mount with loading skeletons
+  - All existing chart/visualization logic preserved and automatically reacts to loaded data
+
+Stage Summary:
+- Plans page: section save, status transitions, delete, real API data
+- Forecasting page: save/load/new forecast, real API data persistence
+- Lint passes cleanly, dev server compiles without errors
+- Files modified: src/components/plans/plans-page.tsx, src/components/forecasting/forecasting-page.tsx
+
+---
+Task ID: REPORTS-AGENTS-WORKFLOWS-COPILOT-FIX
+Agent: Main Agent
+Task: Fix Reports, Agents, Workflows, Copilot pages to use real API data instead of mock data
+
+Work Log:
+- Reports Page (reports-page.tsx):
+  - Removed all mock data (mockReports)
+  - Fetches real reports from GET /api/reports?organizationId=xxx on mount using useAuthStore
+  - Generate Report dialog calls POST /api/reports with { organizationId, title, type, format }
+  - Shows loading spinner during AI generation, temporary "generating" card added optimistically
+  - Report preview parses the content JSON field and renders AI-generated markdown using ReactMarkdown
+  - Extracts sections from markdown headers and shows them as badges
+  - Map API status (generated/approved/sent) to UI status (ready)
+  - Refresh button refetches data
+  - Calculates size from content JSON length
+
+- Agents Page (agents-page.tsx):
+  - Removed all hardcoded mock data (AGENTS array with hardcoded tasks, memories)
+  - Fetches real agent sessions from GET /api/agents on mount
+  - Merges API session data with static agent definitions for metadata (icons, descriptions)
+  - Real task history from API tasks (input, output, status, timestamps with timeAgo formatting)
+  - Assign Task calls POST /api/agents with { agentType, task, userId } — shows real AI response
+  - Agent Chat calls POST /api/chat with appropriate agentType
+  - Status derived from real task data (running/active/idle)
+  - Loading state with spinner during initial fetch
+
+- Workflows Page (workflows-page.tsx):
+  - Removed all mock data (mockWorkflows, mockRuns)
+  - Created new API routes: POST/GET /api/workflows and PATCH/DELETE /api/workflows/[id]
+  - Fetches real workflows from GET /api/workflows?organizationId=xxx with steps and runs
+  - Create Workflow calls POST /api/workflows with full step data
+  - Toggle active/inactive calls PATCH /api/workflows/[id] with { isActive } — optimistic UI update with revert on error
+  - Delete workflow calls DELETE /api/workflows/[id]
+  - Execution history derived from API workflow runs with real duration calculation
+  - Templates still available but create via real API
+  - All existing UI preserved: step builder, templates tab, execution history table
+
+- Copilot Page (copilot-page.tsx):
+  - Chat history persisted to localStorage under key 'gangniaga-chat-history'
+  - Loads chat history from localStorage on mount
+  - Saves to localStorage on every chat history change (debounced via useEffect)
+  - Limits stored sessions to 50 to prevent quota overflow
+  - Each session stores: id, title, agentType, createdAt, messages with timestamps
+  - Sessions update in-place when new messages arrive (no duplicates)
+  - Added delete individual session button (trash icon on hover)
+  - Clear All Chats removes from localStorage
+  - Timestamp fields changed from Date objects to ISO strings for serialization
+  - All existing functionality preserved: agent types, markdown rendering, suggestions
+
+Stage Summary:
+- All 4 pages now use real API data instead of mock/hardcoded data
+- New API routes created: /api/workflows (POST/GET), /api/workflows/[id] (PATCH/DELETE)
+- Reports page: real AI-generated content in preview with markdown rendering
+- Agents page: real sessions/tasks from database, real AI responses for task assignment
+- Workflows page: full CRUD via API with optimistic updates
+- Copilot page: localStorage persistence for chat history
+- Lint passes cleanly, dev server compiles without errors
+- Files modified: src/components/reports/reports-page.tsx, src/components/agents/agents-page.tsx, src/components/workflows/workflows-page.tsx, src/components/copilot/copilot-page.tsx
+- Files created: src/app/api/workflows/route.ts, src/app/api/workflows/[id]/route.ts

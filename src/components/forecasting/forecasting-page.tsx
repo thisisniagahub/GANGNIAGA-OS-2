@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -25,6 +25,10 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Target,
+  Save,
+  FolderOpen,
+  FilePlus,
+  Loader2,
 } from 'lucide-react'
 import {
   AreaChart,
@@ -46,6 +50,8 @@ import {
 } from 'recharts'
 import { useAuthStore } from '@/lib/stores/auth-store'
 import { toast } from 'sonner'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -71,6 +77,40 @@ interface ExpenseItem {
   category: ExpenseCategory
   monthlyAmount: number
   growthRate: number
+}
+
+interface SavedForecast {
+  id: string
+  name: string
+  type: string
+  organizationId: string
+  startMonth: string
+  endMonth: string
+  currency: string
+  createdAt: string
+  updatedAt: string
+  revenueItems: Array<{
+    id: string
+    name: string
+    category: string
+    amount: number
+    growthRate: number
+    startMonth: string
+    endMonth: string | null
+    recurring: boolean
+    order: number
+  }>
+  expenseItems: Array<{
+    id: string
+    name: string
+    category: string
+    amount: number
+    growthRate: number
+    startMonth: string
+    endMonth: string | null
+    recurring: boolean
+    order: number
+  }>
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -162,6 +202,158 @@ export function ForecastingPage() {
   const [customGrowthMultiplier, setCustomGrowthMultiplier] = useState(1.0)
   const [customRevenueMultiplier, setCustomRevenueMultiplier] = useState(1.0)
   const [customExpenseMultiplier, setCustomExpenseMultiplier] = useState(1.0)
+
+  // API integration state
+  const [savedForecasts, setSavedForecasts] = useState<SavedForecast[]>([])
+  const [isLoadingForecasts, setIsLoadingForecasts] = useState(false)
+  const [isSavingForecast, setIsSavingForecast] = useState(false)
+  const [currentForecastId, setCurrentForecastId] = useState<string | null>(null)
+  const [forecastName, setForecastName] = useState('')
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false)
+  const [loadDialogOpen, setLoadDialogOpen] = useState(false)
+
+  // Fetch saved forecasts on mount
+  useEffect(() => {
+    const fetchForecasts = async () => {
+      if (!organization?.id) return
+      setIsLoadingForecasts(true)
+      try {
+        const res = await fetch(`/api/forecasts?organizationId=${organization.id}`)
+        if (res.ok) {
+          const data = await res.json()
+          setSavedForecasts(data.forecasts || [])
+        }
+      } catch {
+        // Silently fail - forecasts will just be empty
+      } finally {
+        setIsLoadingForecasts(false)
+      }
+    }
+    fetchForecasts()
+  }, [organization?.id])
+
+  // Save forecast to backend
+  const handleSaveForecast = useCallback(async () => {
+    if (!organization?.id) return
+    if (!forecastName.trim()) {
+      toast.error('Please enter a forecast name')
+      return
+    }
+
+    setIsSavingForecast(true)
+    try {
+      const now = new Date()
+      const startMonth = `${now.getFullYear()}-01`
+      const endMonth = `${now.getFullYear()}-12`
+
+      // Map frontend revenue items to API format
+      const revenues = revenueItems.map((item) => ({
+        name: item.name,
+        category: item.category,
+        amount: item.monthlyAmount,
+        growthRate: item.growthRate,
+        startMonth: `${now.getFullYear()}-${String(item.startMonth).padStart(2, '0')}`,
+        endMonth: item.isRecurring ? `${now.getFullYear()}-12` : `${now.getFullYear()}-${String(item.endMonth).padStart(2, '0')}`,
+        recurring: item.isRecurring,
+      }))
+
+      // Map frontend expense items to API format
+      const expenses = expenseItems.map((item) => ({
+        name: item.name,
+        category: item.category,
+        amount: item.monthlyAmount,
+        growthRate: item.growthRate,
+        startMonth: startMonth,
+        endMonth: endMonth,
+        recurring: true,
+      }))
+
+      const res = await fetch('/api/forecasts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          organizationId: organization.id,
+          name: forecastName,
+          type: scenario,
+          startMonth,
+          endMonth,
+          currency: organization.currency || 'USD',
+          revenues,
+          expenses,
+        }),
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        toast.success('Forecast saved successfully!')
+        setCurrentForecastId(data.forecast?.id || null)
+        setSaveDialogOpen(false)
+        setForecastName('')
+        // Refresh the list
+        const listRes = await fetch(`/api/forecasts?organizationId=${organization.id}`)
+        if (listRes.ok) {
+          const listData = await listRes.json()
+          setSavedForecasts(listData.forecasts || [])
+        }
+      } else {
+        const data = await res.json()
+        toast.error(data.error || 'Failed to save forecast')
+      }
+    } catch {
+      toast.error('Failed to save forecast')
+    } finally {
+      setIsSavingForecast(false)
+    }
+  }, [organization?.id, organization?.currency, revenueItems, expenseItems, scenario, forecastName])
+
+  // Load a saved forecast
+  const handleLoadForecast = useCallback((forecast: SavedForecast) => {
+    // Map API revenue items to frontend format
+    const loadedRevenue: RevenueItem[] = forecast.revenueItems.map((item, idx) => {
+      const startParts = item.startMonth.split('-')
+      const startMo = parseInt(startParts[1]) || 1
+      const endMo = item.endMonth ? parseInt(item.endMonth.split('-')[1]) || 12 : 12
+      return {
+        id: `lr${idx}`,
+        name: item.name,
+        category: item.category as RevenueCategory,
+        monthlyAmount: item.amount,
+        growthRate: item.growthRate,
+        startMonth: startMo,
+        endMonth: endMo,
+        isRecurring: item.recurring,
+      }
+    })
+
+    // Map API expense items to frontend format
+    const loadedExpense: ExpenseItem[] = forecast.expenseItems.map((item, idx) => ({
+      id: `le${idx}`,
+      name: item.name,
+      category: item.category as ExpenseCategory,
+      monthlyAmount: item.amount,
+      growthRate: item.growthRate,
+    }))
+
+    setRevenueItems(loadedRevenue.length > 0 ? loadedRevenue : DEFAULT_REVENUE_ITEMS)
+    setExpenseItems(loadedExpense.length > 0 ? loadedExpense : DEFAULT_EXPENSE_ITEMS)
+    setScenario((forecast.type || 'base') as ScenarioType)
+    setCurrentForecastId(forecast.id)
+    setLoadDialogOpen(false)
+    toast.success(`Loaded forecast: ${forecast.name}`)
+  }, [])
+
+  // New forecast - reset form
+  const handleNewForecast = useCallback(() => {
+    setRevenueItems(DEFAULT_REVENUE_ITEMS)
+    setExpenseItems(DEFAULT_EXPENSE_ITEMS)
+    setScenario('base')
+    setCurrentForecastId(null)
+    setAiInsight(null)
+    setCustomGrowthMultiplier(1.0)
+    setCustomRevenueMultiplier(1.0)
+    setCustomExpenseMultiplier(1.0)
+    toast.success('New forecast created')
+  }, [])
 
   const multipliers = useMemo(() => {
     if (scenario === 'custom') {
@@ -460,12 +652,108 @@ export function ForecastingPage() {
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
               {organization?.name ?? 'Your Organization'} · 12-month financial projections
+              {currentForecastId && <span className="ml-2 text-primary">• Editing saved forecast</span>}
             </p>
           </div>
-          <Button onClick={handleAiInsight} disabled={aiLoading} className="shrink-0">
-            <Sparkles className="w-4 h-4 mr-2" />
-            {aiLoading ? 'Generating Insights...' : 'AI CFO Insights'}
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button variant="outline" size="sm" onClick={handleNewForecast} className="gap-1.5">
+              <FilePlus className="w-4 h-4" />
+              New
+            </Button>
+            <Dialog open={loadDialogOpen} onOpenChange={setLoadDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <FolderOpen className="w-4 h-4" />
+                  Load
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>Load Saved Forecast</DialogTitle>
+                  <DialogDescription>Select a previously saved forecast to load</DialogDescription>
+                </DialogHeader>
+                {isLoadingForecasts ? (
+                  <div className="space-y-3 py-4">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <Skeleton key={i} className="h-16 w-full" />
+                    ))}
+                  </div>
+                ) : savedForecasts.length === 0 ? (
+                  <div className="flex flex-col items-center py-8 text-center">
+                    <FolderOpen className="w-10 h-10 text-muted-foreground mb-3" />
+                    <p className="text-sm text-muted-foreground">No saved forecasts yet</p>
+                    <p className="text-xs text-muted-foreground mt-1">Save your current forecast to load it later</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
+                    {savedForecasts.map((f) => (
+                      <button
+                        key={f.id}
+                        onClick={() => handleLoadForecast(f)}
+                        className="w-full text-left p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-sm">{f.name}</span>
+                          <Badge variant="outline" className="text-[10px] capitalize">
+                            {f.type}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                          <span>{f.startMonth} → {f.endMonth}</span>
+                          <span>{f.revenueItems.length} revenue · {f.expenseItems.length} expenses</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+            <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="gap-1.5">
+                  <Save className="w-4 h-4" />
+                  Save
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Save Forecast</DialogTitle>
+                  <DialogDescription>Save your current forecast configuration for later</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-2">
+                  <div className="space-y-2">
+                    <Label>Forecast Name</Label>
+                    <Input
+                      placeholder="e.g., Q1 2025 Base Case"
+                      value={forecastName}
+                      onChange={(e) => setForecastName(e.target.value)}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground">
+                    <div>Scenario: <span className="font-medium text-foreground capitalize">{scenario}</span></div>
+                    <div>Revenue Streams: <span className="font-medium text-foreground">{revenueItems.length}</span></div>
+                    <div>Expense Items: <span className="font-medium text-foreground">{expenseItems.length}</span></div>
+                    <div>Period: <span className="font-medium text-foreground">12 months</span></div>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setSaveDialogOpen(false)} disabled={isSavingForecast}>Cancel</Button>
+                  <Button onClick={handleSaveForecast} disabled={isSavingForecast || !forecastName.trim()}>
+                    {isSavingForecast ? (
+                      <><Loader2 className="w-4 h-4 mr-1 animate-spin" />Saving...</>
+                    ) : (
+                      <><Save className="w-4 h-4 mr-1" />Save Forecast</>
+                    )}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            <Separator orientation="vertical" className="h-6" />
+            <Button onClick={handleAiInsight} disabled={aiLoading} className="shrink-0">
+              <Sparkles className="w-4 h-4 mr-2" />
+              {aiLoading ? 'Generating Insights...' : 'AI CFO Insights'}
+            </Button>
+          </div>
         </div>
 
         {/* Scenario Tabs + Key Metrics */}

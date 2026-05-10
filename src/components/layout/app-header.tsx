@@ -1,11 +1,13 @@
 'use client'
 
+import { useState, useEffect, useCallback } from 'react'
 import { useAppStore, type PageId } from '@/lib/stores/app-store'
 import { useAuthStore } from '@/lib/stores/auth-store'
-import { Bell, Search, Menu } from 'lucide-react'
+import { Bell, Search, Menu, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,9 +40,87 @@ const pageDescriptions: Record<PageId, string> = {
   settings: 'Manage your account and organization',
 }
 
+interface Notification {
+  id: string
+  title: string
+  message: string
+  type: string
+  read: boolean
+  createdAt: string
+}
+
 export function AppHeader() {
   const { currentPage, toggleSidebar } = useAppStore()
   const { user, logout } = useAuthStore()
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [notifOpen, setNotifOpen] = useState(false)
+
+  const fetchNotifications = useCallback(async () => {
+    if (!user) return
+    try {
+      const res = await fetch(`/api/notifications?userId=${user.id}`)
+      if (res.ok) {
+        const data = await res.json()
+        setNotifications(data.notifications || [])
+      }
+    } catch {
+      // silently fail
+    }
+  }, [user])
+
+  useEffect(() => {
+    const load = async () => {
+      if (!user) return
+      try {
+        const res = await fetch(`/api/notifications?userId=${user.id}`)
+        if (res.ok) {
+          const data = await res.json()
+          setNotifications(data.notifications || [])
+        }
+      } catch {
+        // silently fail
+      }
+    }
+    load()
+    const interval = setInterval(fetchNotifications, 30000)
+    return () => clearInterval(interval)
+  }, [user, fetchNotifications])
+
+  const unreadCount = notifications.filter((n) => !n.read).length
+
+  const markAsRead = async (id: string) => {
+    try {
+      await fetch('/api/notifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, read: true }),
+      })
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+      )
+    } catch {
+      // silently fail
+    }
+  }
+
+  const markAllRead = async () => {
+    try {
+      await Promise.all(
+        notifications
+          .filter((n) => !n.read)
+          .map((n) =>
+            fetch('/api/notifications', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: n.id, read: true }),
+            })
+          )
+      )
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+    } catch {
+      // silently fail
+    }
+  }
 
   return (
     <header className="h-16 border-b bg-card flex items-center justify-between px-4 lg:px-6 shrink-0">
@@ -72,36 +152,65 @@ export function AppHeader() {
         </div>
 
         {/* Notifications */}
-        <DropdownMenu>
+        <DropdownMenu open={notifOpen} onOpenChange={setNotifOpen}>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="w-4 h-4" />
-              <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]">
-                3
-              </Badge>
+              {unreadCount > 0 && (
+                <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]">
+                  {unreadCount}
+                </Badge>
+              )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-72">
-            <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+          <DropdownMenuContent align="end" className="w-80">
+            <div className="flex items-center justify-between px-2">
+              <DropdownMenuLabel className="p-0">Notifications</DropdownMenuLabel>
+              {unreadCount > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={markAllRead}
+                >
+                  <Check className="w-3 h-3 mr-1" />
+                  Mark all read
+                </Button>
+              )}
+            </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <div className="flex flex-col gap-1">
-                <span className="text-sm font-medium">Revenue alert</span>
-                <span className="text-xs text-muted-foreground">MRR increased by 12% this month</span>
+            {notifications.length === 0 ? (
+              <div className="py-6 text-center">
+                <Bell className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
+                <p className="text-xs text-muted-foreground">No notifications yet</p>
               </div>
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <div className="flex flex-col gap-1">
-                <span className="text-sm font-medium">Forecast updated</span>
-                <span className="text-xs text-muted-foreground">Q2 projections are now available</span>
-              </div>
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <div className="flex flex-col gap-1">
-                <span className="text-sm font-medium">Agent task complete</span>
-                <span className="text-xs text-muted-foreground">CFO Agent finished financial analysis</span>
-              </div>
-            </DropdownMenuItem>
+            ) : (
+              <ScrollArea className="max-h-72">
+                {notifications.slice(0, 10).map((notif) => (
+                  <DropdownMenuItem
+                    key={notif.id}
+                    className="cursor-pointer p-3"
+                    onClick={() => !notif.read && markAsRead(notif.id)}
+                  >
+                    <div className="flex gap-3 w-full">
+                      <div
+                        className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
+                          notif.read ? 'bg-transparent' : 'bg-primary'
+                        }`}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm ${notif.read ? 'text-muted-foreground' : 'font-medium'}`}>
+                          {notif.title}
+                        </p>
+                        <p className="text-xs text-muted-foreground line-clamp-2">
+                          {notif.message}
+                        </p>
+                      </div>
+                    </div>
+                  </DropdownMenuItem>
+                ))}
+              </ScrollArea>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
 
@@ -124,9 +233,15 @@ export function AppHeader() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Profile</DropdownMenuItem>
-            <DropdownMenuItem>Organization</DropdownMenuItem>
-            <DropdownMenuItem>Billing</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => useAppStore.getState().setCurrentPage('settings')}>
+              Profile
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => useAppStore.getState().setCurrentPage('settings')}>
+              Organization
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => useAppStore.getState().setCurrentPage('settings')}>
+              Billing
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={logout} className="text-destructive">
               Log out

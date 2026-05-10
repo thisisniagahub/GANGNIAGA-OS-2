@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Card,
   CardContent,
@@ -14,13 +14,11 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog'
 import {
   Bot,
@@ -37,13 +35,13 @@ import {
   Plus,
   Send,
   Loader2,
-  ChevronRight,
   Sparkles,
   ArrowRight,
   MessageSquare,
   DollarSign,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useAuthStore } from '@/lib/stores/auth-store'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -79,9 +77,34 @@ interface AgentMemory {
   type: string
 }
 
-// ─── Agent Data ─────────────────────────────────────────────────────────────
+// API response types
+interface ApiAgentSession {
+  id: string
+  userId: string
+  agentType: string
+  title: string | null
+  status: string
+  metadata: string
+  createdAt: string
+  updatedAt: string
+  tasks: ApiAgentTask[]
+}
 
-const AGENTS: AgentInfo[] = [
+interface ApiAgentTask {
+  id: string
+  sessionId: string
+  type: string
+  input: string
+  output: string | null
+  status: string
+  metadata: string
+  createdAt: string
+  updatedAt: string
+}
+
+// ─── Agent Definitions (static metadata) ────────────────────────────────────
+
+const AGENT_DEFINITIONS: Omit<AgentInfo, 'status' | 'lastTask' | 'taskHistory' | 'memories'>[] = [
   {
     id: 'cfo',
     name: 'CFO Agent',
@@ -91,18 +114,6 @@ const AGENTS: AgentInfo[] = [
     icon: TrendingUp,
     color: 'text-emerald-600 dark:text-emerald-400',
     bgColor: 'bg-emerald-500/10',
-    status: 'active',
-    lastTask: 'Analyzed Q1 cash flow trends',
-    taskHistory: [
-      { id: '1', title: 'Q1 Cash Flow Analysis', status: 'completed', createdAt: '2 hours ago', completedAt: '1 hour ago', output: 'Cash flow improved by 12% compared to last quarter.' },
-      { id: '2', title: 'Monthly Burn Rate Report', status: 'completed', createdAt: '1 day ago', completedAt: '1 day ago', output: 'Current burn rate: $56K/month, runway: 18 months.' },
-      { id: '3', title: 'Budget Optimization Review', status: 'running', createdAt: '30 min ago' },
-    ],
-    memories: [
-      { id: 'm1', key: 'burn_rate', value: '$56K/month', type: 'forecast' },
-      { id: 'm2', key: 'runway', value: '18 months', type: 'forecast' },
-      { id: 'm3', key: 'mrr_target', value: '$150K by Q4', type: 'user' },
-    ],
   },
   {
     id: 'ceo',
@@ -113,16 +124,6 @@ const AGENTS: AgentInfo[] = [
     icon: Brain,
     color: 'text-violet-600 dark:text-violet-400',
     bgColor: 'bg-violet-500/10',
-    status: 'idle',
-    lastTask: 'Generated monthly executive summary',
-    taskHistory: [
-      { id: '4', title: 'Monthly Executive Summary', status: 'completed', createdAt: '3 days ago', completedAt: '3 days ago', output: 'All KPIs on track. Revenue up 12%, customer growth accelerating.' },
-      { id: '5', title: 'Strategic Priority Assessment', status: 'completed', createdAt: '1 week ago', completedAt: '1 week ago' },
-    ],
-    memories: [
-      { id: 'm4', key: 'strategic_goals', value: 'Scale to $2M ARR by year end', type: 'user' },
-      { id: 'm5', key: 'focus_area', value: 'Enterprise segment expansion', type: 'workspace' },
-    ],
   },
   {
     id: 'research',
@@ -133,17 +134,6 @@ const AGENTS: AgentInfo[] = [
     icon: Search,
     color: 'text-amber-600 dark:text-amber-400',
     bgColor: 'bg-amber-500/10',
-    status: 'active',
-    lastTask: 'Monitoring competitor pricing changes',
-    taskHistory: [
-      { id: '6', title: 'Competitor Pricing Analysis', status: 'completed', createdAt: '5 hours ago', completedAt: '4 hours ago', output: '3 competitors adjusted pricing in the last 30 days.' },
-      { id: '7', title: 'Market Trend Report', status: 'running', createdAt: '1 hour ago' },
-      { id: '8', title: 'Industry Benchmark Study', status: 'completed', createdAt: '2 days ago', completedAt: '2 days ago' },
-    ],
-    memories: [
-      { id: 'm6', key: 'competitors_tracked', value: '12 companies', type: 'workspace' },
-      { id: 'm7', key: 'market_size', value: '$4.2B TAM', type: 'agent' },
-    ],
   },
   {
     id: 'growth',
@@ -154,17 +144,6 @@ const AGENTS: AgentInfo[] = [
     icon: Zap,
     color: 'text-rose-600 dark:text-rose-400',
     bgColor: 'bg-rose-500/10',
-    status: 'idle',
-    lastTask: 'Analyzed conversion funnel metrics',
-    taskHistory: [
-      { id: '9', title: 'Conversion Funnel Analysis', status: 'completed', createdAt: '6 hours ago', completedAt: '5 hours ago', output: 'Trial-to-paid conversion rate: 8.2% (industry avg: 5%).' },
-      { id: '10', title: 'Channel ROI Comparison', status: 'completed', createdAt: '2 days ago', completedAt: '2 days ago' },
-    ],
-    memories: [
-      { id: 'm8', key: 'cac', value: '$380', type: 'forecast' },
-      { id: 'm9', key: 'ltv', value: '$4,200', type: 'forecast' },
-      { id: 'm10', key: 'top_channel', value: 'Organic + Content Marketing', type: 'agent' },
-    ],
   },
   {
     id: 'operations',
@@ -175,17 +154,6 @@ const AGENTS: AgentInfo[] = [
     icon: Play,
     color: 'text-sky-600 dark:text-sky-400',
     bgColor: 'bg-sky-500/10',
-    status: 'running',
-    lastTask: 'Executing weekly data sync workflow',
-    taskHistory: [
-      { id: '11', title: 'Weekly Data Sync', status: 'running', createdAt: '15 min ago' },
-      { id: '12', title: 'CRM Pipeline Update', status: 'completed', createdAt: '1 day ago', completedAt: '1 day ago' },
-      { id: '13', title: 'Invoice Generation Batch', status: 'completed', createdAt: '3 days ago', completedAt: '3 days ago', output: 'Generated 45 invoices totaling $127K.' },
-    ],
-    memories: [
-      { id: 'm11', key: 'active_workflows', value: '7 workflows', type: 'workspace' },
-      { id: 'm12', key: 'last_sync', value: '2024-01-15 09:00 UTC', type: 'agent' },
-    ],
   },
   {
     id: 'fundraising',
@@ -196,16 +164,6 @@ const AGENTS: AgentInfo[] = [
     icon: DollarSign,
     color: 'text-teal-600 dark:text-teal-400',
     bgColor: 'bg-teal-500/10',
-    status: 'idle',
-    lastTask: 'Updated investor pipeline tracker',
-    taskHistory: [
-      { id: '14', title: 'Investor Pipeline Update', status: 'completed', createdAt: '1 day ago', completedAt: '1 day ago' },
-      { id: '15', title: 'Pitch Deck Revision', status: 'completed', createdAt: '4 days ago', completedAt: '4 days ago', output: 'Updated pitch deck with Q4 financials.' },
-    ],
-    memories: [
-      { id: 'm13', key: 'target_raise', value: '$3M Series A', type: 'user' },
-      { id: 'm14', key: 'pipeline_count', value: '8 active conversations', type: 'workspace' },
-    ],
   },
   {
     id: 'browser',
@@ -216,16 +174,6 @@ const AGENTS: AgentInfo[] = [
     icon: Globe,
     color: 'text-orange-600 dark:text-orange-400',
     bgColor: 'bg-orange-500/10',
-    status: 'active',
-    lastTask: 'Scraped competitor pricing pages',
-    taskHistory: [
-      { id: '16', title: 'Competitor Pricing Scrape', status: 'completed', createdAt: '2 hours ago', completedAt: '1 hour ago', output: 'Pricing data collected from 5 competitors.' },
-      { id: '17', title: 'Industry Report Download', status: 'completed', createdAt: '1 day ago', completedAt: '1 day ago' },
-    ],
-    memories: [
-      { id: 'm15', key: 'monitored_urls', value: '23 URLs tracked', type: 'workspace' },
-      { id: 'm16', key: 'scrape_frequency', value: 'Every 6 hours', type: 'agent' },
-    ],
   },
   {
     id: 'reporting',
@@ -236,17 +184,6 @@ const AGENTS: AgentInfo[] = [
     icon: BarChart3,
     color: 'text-pink-600 dark:text-pink-400',
     bgColor: 'bg-pink-500/10',
-    status: 'running',
-    lastTask: 'Generating weekly KPI report',
-    taskHistory: [
-      { id: '18', title: 'Weekly KPI Report', status: 'running', createdAt: '10 min ago' },
-      { id: '19', title: 'Monthly Board Deck', status: 'completed', createdAt: '1 week ago', completedAt: '1 week ago', output: '12-page board deck generated and distributed.' },
-      { id: '20', title: 'Investor Update Email', status: 'completed', createdAt: '2 weeks ago', completedAt: '2 weeks ago' },
-    ],
-    memories: [
-      { id: 'm17', key: 'report_schedule', value: 'Weekly KPI, Monthly Board', type: 'workspace' },
-      { id: 'm18', key: 'recipients', value: '12 stakeholders', type: 'user' },
-    ],
   },
 ]
 
@@ -284,9 +221,27 @@ function TaskStatusIcon({ status }: { status: string }) {
   }
 }
 
+// ─── Format time ago ────────────────────────────────────────────────────
+
+function timeAgo(dateStr: string): string {
+  const now = new Date()
+  const date = new Date(dateStr)
+  const diffMs = now.getTime() - date.getTime()
+  const diffMin = Math.floor(diffMs / 60000)
+  if (diffMin < 1) return 'Just now'
+  if (diffMin < 60) return `${diffMin} min ago`
+  const diffHours = Math.floor(diffMin / 60)
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
+  const diffDays = Math.floor(diffHours / 24)
+  if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
+  return date.toLocaleDateString()
+}
+
 // ─── Main Component ────────────────────────────────────────────────────────
 
 export function AgentsPage() {
+  const { user } = useAuthStore()
+  const [agents, setAgents] = useState<AgentInfo[]>([])
   const [selectedAgent, setSelectedAgent] = useState<AgentInfo | null>(null)
   const [newTaskInput, setNewTaskInput] = useState('')
   const [isSubmittingTask, setIsSubmittingTask] = useState(false)
@@ -295,22 +250,105 @@ export function AgentsPage() {
   const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([])
   const [isChatLoading, setIsChatLoading] = useState(false)
   const [chatSessionId, setChatSessionId] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
-  // ─── Assign Task ───────────────────────────────────────────────────────
+  // Fetch real agent sessions from API
+  const fetchAgentSessions = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const url = user?.id ? `/api/agents?userId=${user.id}` : '/api/agents'
+      const res = await fetch(url)
+      if (!res.ok) throw new Error('Failed to fetch agent sessions')
+      const data = await res.json()
+
+      // Map API sessions + static agent definitions into AgentInfo objects
+      const sessionsByType: Record<string, ApiAgentSession> = {}
+      for (const session of (data.sessions || []) as ApiAgentSession[]) {
+        sessionsByType[session.agentType] = session
+      }
+
+      const mergedAgents: AgentInfo[] = AGENT_DEFINITIONS.map((def) => {
+        const session = sessionsByType[def.id]
+        let status: AgentStatus = 'idle'
+        let lastTask = 'No tasks yet'
+        const taskHistory: AgentTask[] = []
+        const memories: AgentMemory[] = []
+
+        if (session) {
+          // Determine status from tasks
+          const hasRunning = session.tasks.some((t) => t.status === 'running')
+          const hasCompleted = session.tasks.some((t) => t.status === 'completed')
+          if (hasRunning) status = 'running'
+          else if (hasCompleted) status = 'active'
+
+          // Map task history
+          for (const task of session.tasks.slice(0, 10)) {
+            taskHistory.push({
+              id: task.id,
+              title: task.input.length > 80 ? task.input.slice(0, 80) + '...' : task.input,
+              status: task.status as AgentTask['status'],
+              createdAt: timeAgo(task.createdAt),
+              completedAt: task.status === 'completed' ? timeAgo(task.updatedAt) : undefined,
+              output: task.output || undefined,
+            })
+          }
+
+          if (taskHistory.length > 0) {
+            lastTask = taskHistory[0].title
+          }
+
+          // Parse memories from metadata
+          try {
+            const memMeta = JSON.parse(session.metadata || '{}')
+            if (memMeta.memories) {
+              for (const mem of memMeta.memories) {
+                memories.push(mem)
+              }
+            }
+          } catch {
+            // ignore
+          }
+        }
+
+        return { ...def, status, lastTask, taskHistory, memories }
+      })
+
+      setAgents(mergedAgents)
+    } catch {
+      // Fallback to static definitions with idle status
+      setAgents(
+        AGENT_DEFINITIONS.map((def) => ({
+          ...def,
+          status: 'idle' as AgentStatus,
+          lastTask: 'No tasks yet',
+          taskHistory: [],
+          memories: [],
+        }))
+      )
+      toast.error('Failed to load agent data')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [user?.id])
+
+  useEffect(() => {
+    fetchAgentSessions()
+  }, [fetchAgentSessions])
+
+  // ─── Assign Task via real API ──────────────────────────────────────────
 
   const assignTask = async () => {
     if (!newTaskInput.trim() || !selectedAgent || isSubmittingTask) return
 
     setIsSubmittingTask(true)
     try {
-      // Use the chat API to process the task through the agent
-      const res = await fetch('/api/chat', {
+      const res = await fetch('/api/agents', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: `[Task Assignment] ${newTaskInput}`,
-          sessionId: null,
           agentType: selectedAgent.id,
+          task: newTaskInput,
+          userId: user?.id,
         }),
       })
 
@@ -318,15 +356,15 @@ export function AgentsPage() {
 
       const data = await res.json()
 
-      // Update local task history
+      // Update the selected agent's task history with real data
       setSelectedAgent((prev) =>
         prev
           ? {
               ...prev,
               taskHistory: [
                 {
-                  id: crypto.randomUUID(),
-                  title: newTaskInput,
+                  id: data.task?.id || crypto.randomUUID(),
+                  title: newTaskInput.length > 80 ? newTaskInput.slice(0, 80) + '...' : newTaskInput,
                   status: 'completed' as const,
                   createdAt: 'Just now',
                   completedAt: 'Just now',
@@ -340,6 +378,30 @@ export function AgentsPage() {
           : null
       )
 
+      // Also update the agents array
+      setAgents((prev) =>
+        prev.map((a) =>
+          a.id === selectedAgent.id
+            ? {
+                ...a,
+                taskHistory: [
+                  {
+                    id: data.task?.id || crypto.randomUUID(),
+                    title: newTaskInput.length > 80 ? newTaskInput.slice(0, 80) + '...' : newTaskInput,
+                    status: 'completed' as const,
+                    createdAt: 'Just now',
+                    completedAt: 'Just now',
+                    output: data.response,
+                  },
+                  ...a.taskHistory,
+                ],
+                lastTask: newTaskInput,
+                status: 'active' as const,
+              }
+            : a
+        )
+      )
+
       setNewTaskInput('')
       toast.success(`Task assigned to ${selectedAgent.name}`)
     } catch {
@@ -349,7 +411,7 @@ export function AgentsPage() {
     }
   }
 
-  // ─── Agent Chat ────────────────────────────────────────────────────────
+  // ─── Agent Chat via POST /api/chat ─────────────────────────────────────
 
   const sendChatMessage = async () => {
     if (!chatInput.trim() || isChatLoading || !selectedAgent) return
@@ -423,72 +485,79 @@ export function AgentsPage() {
         </div>
         <Badge variant="outline" className="w-fit text-xs">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse mr-1.5" />
-          {AGENTS.filter((a) => a.status !== 'idle').length} agents active
+          {agents.filter((a) => a.status !== 'idle').length} agents active
         </Badge>
       </div>
 
       {/* Agent Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {AGENTS.map((agent) => {
-          const AgentIcon = agent.icon
-          return (
-            <Card
-              key={agent.id}
-              className="group hover:shadow-md transition-all cursor-pointer hover:border-primary/20"
-              onClick={() => setSelectedAgent(agent)}
-            >
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl ${agent.bgColor} flex items-center justify-center`}>
-                      <AgentIcon className={`w-5 h-5 ${agent.color}`} />
-                    </div>
-                    <div>
-                      <CardTitle className="text-sm">{agent.name}</CardTitle>
-                      <StatusBadge status={agent.status} />
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          <span className="ml-2 text-sm text-muted-foreground">Loading agents...</span>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {agents.map((agent) => {
+            const AgentIcon = agent.icon
+            return (
+              <Card
+                key={agent.id}
+                className="group hover:shadow-md transition-all cursor-pointer hover:border-primary/20"
+                onClick={() => setSelectedAgent(agent)}
+              >
+                <CardHeader className="pb-2">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-xl ${agent.bgColor} flex items-center justify-center`}>
+                        <AgentIcon className={`w-5 h-5 ${agent.color}`} />
+                      </div>
+                      <div>
+                        <CardTitle className="text-sm">{agent.name}</CardTitle>
+                        <StatusBadge status={agent.status} />
+                      </div>
                     </div>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <CardDescription className="text-xs leading-relaxed">
-                  {agent.description}
-                </CardDescription>
-                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                  <Clock className="w-3 h-3" />
-                  <span className="truncate">{agent.lastTask}</span>
-                </div>
-                <div className="flex gap-2 pt-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 h-7 text-[11px] gap-1"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      openChat(agent)
-                    }}
-                  >
-                    <MessageSquare className="w-3 h-3" />
-                    Chat
-                  </Button>
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="flex-1 h-7 text-[11px] gap-1"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setSelectedAgent(agent)
-                    }}
-                  >
-                    <Plus className="w-3 h-3" />
-                    Assign Task
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )
-        })}
-      </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <CardDescription className="text-xs leading-relaxed">
+                    {agent.description}
+                  </CardDescription>
+                  <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                    <Clock className="w-3 h-3" />
+                    <span className="truncate">{agent.lastTask}</span>
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 h-7 text-[11px] gap-1"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        openChat(agent)
+                      }}
+                    >
+                      <MessageSquare className="w-3 h-3" />
+                      Chat
+                    </Button>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="flex-1 h-7 text-[11px] gap-1"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedAgent(agent)
+                      }}
+                    >
+                      <Plus className="w-3 h-3" />
+                      Assign Task
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+      )}
 
       {/* Agent Orchestration Visualization */}
       <Card>
@@ -617,7 +686,7 @@ export function AgentsPage() {
                     <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
                       {selectedAgent.taskHistory.length === 0 ? (
                         <p className="text-xs text-muted-foreground text-center py-4">
-                          No tasks yet
+                          No tasks yet. Assign a task below!
                         </p>
                       ) : (
                         selectedAgent.taskHistory.map((task) => (
@@ -635,7 +704,7 @@ export function AgentsPage() {
                               </div>
                               {task.output && (
                                 <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">
-                                  {task.output}
+                                  {task.output.length > 200 ? task.output.slice(0, 200) + '...' : task.output}
                                 </p>
                               )}
                             </div>
@@ -648,29 +717,32 @@ export function AgentsPage() {
                   <Separator />
 
                   {/* Memory / Context */}
-                  <div>
-                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                      Memory & Context
-                    </h4>
-                    <div className="grid grid-cols-2 gap-2">
-                      {selectedAgent.memories.map((memory) => (
-                        <div
-                          key={memory.id}
-                          className="p-2.5 rounded-lg border bg-card"
-                        >
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <Badge variant="secondary" className="text-[9px] h-4 px-1.5">
-                              {memory.type}
-                            </Badge>
-                          </div>
-                          <p className="text-[11px] font-medium">{memory.key}</p>
-                          <p className="text-[11px] text-muted-foreground">{memory.value}</p>
+                  {selectedAgent.memories.length > 0 && (
+                    <>
+                      <div>
+                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                          Memory & Context
+                        </h4>
+                        <div className="grid grid-cols-2 gap-2">
+                          {selectedAgent.memories.map((memory) => (
+                            <div
+                              key={memory.id}
+                              className="p-2.5 rounded-lg border bg-card"
+                            >
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <Badge variant="secondary" className="text-[9px] h-4 px-1.5">
+                                  {memory.type}
+                                </Badge>
+                              </div>
+                              <p className="text-[11px] font-medium">{memory.key}</p>
+                              <p className="text-[11px] text-muted-foreground">{memory.value}</p>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <Separator />
+                      </div>
+                      <Separator />
+                    </>
+                  )}
 
                   {/* New Task Form */}
                   <div>

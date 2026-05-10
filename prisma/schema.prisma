@@ -418,3 +418,129 @@ model Notification {
 
   @@map("notifications")
 }
+
+// ============================================
+// SUBSCRIPTIONS & BILLING
+// ============================================
+
+model Subscription {
+  id             String   @id @default(cuid())
+  organizationId String
+  plan           String   @default("free") // free, starter, pro, enterprise
+  status         String   @default("active") // active, cancelled, past_due, trialing
+  stripeCustomerId String?
+  stripePriceId    String?
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean  @default(false)
+  metadata       String   @default("{}")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("subscriptions")
+}
+
+// ============================================
+// EXPORTS
+// ============================================
+
+model Export {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  type           String   // plan, report, forecast, kpi
+  format         String   // pdf, docx, pptx, csv, xlsx, markdown
+  title          String
+  status         String   @default("pending") // pending, processing, completed, failed
+  fileUrl        String?
+  fileSize       Int?
+  metadata       String   @default("{}")
+  createdAt      DateTime @default(now())
+
+  @@map("exports")
+}
+
+// ============================================
+// BROWSER AUTOMATION
+// ============================================
+
+model BrowserSession {
+  id         String   @id @default(cuid())
+  userId     String
+  status     String   @default("active") // active, completed, failed
+  url        String?
+  metadata   String   @default("{}")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  snapshots BrowserSnapshot[]
+
+  @@map("browser_sessions")
+}
+
+model BrowserSnapshot {
+  id            String   @id @default(cuid())
+  sessionId     String
+  type          String   // screenshot, html, pdf, data
+  url           String?
+  data          String?  // base64 or extracted data
+  metadata      String   @default("{}")
+  createdAt     DateTime @default(now())
+
+  session BrowserSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("browser_snapshots")
+}
+
+// ============================================
+// AUTOMATION LOGS
+// ============================================
+
+model AutomationLog {
+  id             String   @id @default(cuid())
+  organizationId String
+  type           String   // agent, workflow, browser, report
+  action         String
+  status         String   @default("success") // success, failure, warning
+  details        String?
+  userId         String?
+  metadata       String   @default("{}")
+  createdAt      DateTime @default(now())
+
+  @@map("automation_logs")
+}
+
+// ============================================
+// SKILL REGISTRY
+// ============================================
+
+model SkillRegistry {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  type        String   // tool, agent, integration
+  config      String   @default("{}")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("skill_registry")
+}
+
+// ============================================
+// AGENT PERMISSIONS
+// ============================================
+
+model AgentPermission {
+  id           String   @id @default(cuid())
+  agentType    String   // cfo, ceo, research, etc.
+  resource     String   // kpis, forecasts, plans, reports, etc.
+  action       String   // read, write, execute, admin
+  isAllowed    Boolean  @default(false)
+  constraints  String   @default("{}") // JSON constraints
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([agentType, resource, action])
+  @@map("agent_permissions")
+}

@@ -33,14 +33,14 @@ interface ChatMessage {
   id: string
   role: 'user' | 'assistant'
   content: string
-  timestamp: Date
+  timestamp: string // ISO string for serialization
 }
 
 interface ChatSession {
   id: string
   title: string
   agentType: string
-  createdAt: Date
+  createdAt: string // ISO string for serialization
   messages: ChatMessage[]
 }
 
@@ -79,6 +79,34 @@ const AGENT_CONFIG: Record<AgentType, { label: string; icon: React.ElementType; 
   },
 }
 
+// ─── localStorage helpers ──────────────────────────────────────────────────
+
+const STORAGE_KEY = 'gangniaga-chat-history'
+
+function loadChatHistory(): ChatSession[] {
+  try {
+    if (typeof window === 'undefined') return []
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (stored) {
+      return JSON.parse(stored)
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return []
+}
+
+function saveChatHistory(history: ChatSession[]) {
+  try {
+    if (typeof window === 'undefined') return
+    // Keep only the last 50 sessions to avoid storage bloat
+    const trimmed = history.slice(0, 50)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed))
+  } catch {
+    // ignore storage errors (quota exceeded etc.)
+  }
+}
+
 // ─── Typing Dots Component ─────────────────────────────────────────────────
 
 function TypingDots() {
@@ -102,9 +130,26 @@ export function CopilotPage() {
   const [chatHistory, setChatHistory] = useState<ChatSession[]>([])
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const [isInitialized, setIsInitialized] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Load chat history from localStorage on mount
+  useEffect(() => {
+    const stored = loadChatHistory()
+    if (stored.length > 0) {
+      setChatHistory(stored)
+    }
+    setIsInitialized(true)
+  }, [])
+
+  // Save chat history to localStorage whenever it changes
+  useEffect(() => {
+    if (isInitialized && chatHistory.length >= 0) {
+      saveChatHistory(chatHistory)
+    }
+  }, [chatHistory, isInitialized])
 
   // Auto-scroll to bottom
   const scrollToBottom = useCallback(() => {
@@ -114,6 +159,39 @@ export function CopilotPage() {
   useEffect(() => {
     scrollToBottom()
   }, [messages, isLoading, scrollToBottom])
+
+  // ─── Update current session in history ─────────────────────────────────
+
+  const updateCurrentSession = useCallback((
+    currentMessages: ChatMessage[],
+    currentSessionId: string | null,
+    currentAgentType: AgentType,
+  ) => {
+    if (!currentSessionId || currentMessages.length === 0) return
+
+    setChatHistory((prev) => {
+      const existingIdx = prev.findIndex((s) => s.id === currentSessionId)
+      if (existingIdx >= 0) {
+        const updated = [...prev]
+        updated[existingIdx] = {
+          ...updated[existingIdx],
+          messages: currentMessages,
+        }
+        return updated
+      }
+      // Create new session entry
+      return [
+        {
+          id: currentSessionId,
+          title: currentMessages[0]?.content.slice(0, 50) || 'New Chat',
+          agentType: currentAgentType,
+          createdAt: new Date().toISOString(),
+          messages: currentMessages,
+        },
+        ...prev,
+      ]
+    })
+  }, [])
 
   // ─── Send Message ──────────────────────────────────────────────────────
 
@@ -125,10 +203,11 @@ export function CopilotPage() {
       id: crypto.randomUUID(),
       role: 'user',
       content: trimmed,
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
     }
 
-    setMessages((prev) => [...prev, userMessage])
+    const newMessages = [...messages, userMessage]
+    setMessages(newMessages)
     setInput('')
     setIsLoading(true)
 
@@ -147,29 +226,24 @@ export function CopilotPage() {
 
       const data = await res.json()
 
-      if (!sessionId && data.sessionId) {
-        setSessionId(data.sessionId)
-        // Add to chat history
-        setChatHistory((prev) => [
-          {
-            id: data.sessionId,
-            title: trimmed.slice(0, 50),
-            agentType,
-            createdAt: new Date(),
-            messages: [...messages, userMessage],
-          },
-          ...prev,
-        ])
+      let effectiveSessionId = sessionId
+      if (!effectiveSessionId && data.sessionId) {
+        effectiveSessionId = data.sessionId
+        setSessionId(effectiveSessionId)
       }
 
       const assistantMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
         content: data.response,
-        timestamp: new Date(),
+        timestamp: new Date().toISOString(),
       }
 
-      setMessages((prev) => [...prev, assistantMessage])
+      const allMessages = [...newMessages, assistantMessage]
+      setMessages(allMessages)
+
+      // Update chat history
+      updateCurrentSession(allMessages, effectiveSessionId, agentType)
     } catch {
       toast.error('Failed to send message. Please try again.')
     } finally {
@@ -192,7 +266,13 @@ export function CopilotPage() {
     setMessages([])
     setSessionId(null)
     setInput('')
-    toast.success('Chat cleared')
+    setChatHistory([])
+    try {
+      localStorage.removeItem(STORAGE_KEY)
+    } catch {
+      // ignore
+    }
+    toast.success('Chat history cleared')
   }
 
   // ─── Load Chat Session ─────────────────────────────────────────────────
@@ -202,6 +282,17 @@ export function CopilotPage() {
     setSessionId(session.id)
     setAgentType(session.agentType as AgentType)
     setMobileSidebarOpen(false)
+  }
+
+  // ─── Delete Chat Session ───────────────────────────────────────────────
+
+  const deleteChatSession = (sessionIdToDelete: string) => {
+    setChatHistory((prev) => prev.filter((s) => s.id !== sessionIdToDelete))
+    if (sessionId === sessionIdToDelete) {
+      setMessages([])
+      setSessionId(null)
+    }
+    toast.success('Chat session deleted')
   }
 
   // ─── Handle Key Down ───────────────────────────────────────────────────
@@ -267,26 +358,44 @@ export function CopilotPage() {
               const agentCfg = AGENT_CONFIG[session.agentType as AgentType]
               const AgentIcon = agentCfg?.icon || Sparkles
               return (
-                <button
+                <div
                   key={session.id}
-                  className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors hover:bg-muted/80 text-sm ${
+                  className={`flex items-center gap-2 px-3 py-2.5 rounded-lg transition-colors hover:bg-muted/80 text-sm group ${
                     sessionId === session.id ? 'bg-muted' : ''
                   }`}
-                  onClick={() => loadChatSession(session)}
                 >
-                  <div className="flex items-center gap-2">
-                    <AgentIcon className={`w-3.5 h-3.5 shrink-0 ${agentCfg?.color || 'text-primary'}`} />
-                    <span className="truncate font-medium text-xs">{session.title}</span>
-                  </div>
-                  <div className="flex items-center gap-2 mt-1 ml-5.5">
-                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4">
-                      {agentCfg?.label || 'General'}
-                    </Badge>
-                    <span className="text-[10px] text-muted-foreground">
-                      {session.createdAt.toLocaleDateString()}
-                    </span>
-                  </div>
-                </button>
+                  <button
+                    className="flex-1 text-left min-w-0"
+                    onClick={() => loadChatSession(session)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <AgentIcon className={`w-3.5 h-3.5 shrink-0 ${agentCfg?.color || 'text-primary'}`} />
+                      <span className="truncate font-medium text-xs">{session.title}</span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1 ml-5.5">
+                      <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4">
+                        {agentCfg?.label || 'General'}
+                      </Badge>
+                      <span className="text-[10px] text-muted-foreground">
+                        {new Date(session.createdAt).toLocaleDateString()}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {session.messages.length} msgs
+                      </span>
+                    </div>
+                  </button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      deleteChatSession(session.id)
+                    }}
+                  >
+                    <Trash2 className="w-3 h-3 text-muted-foreground" />
+                  </Button>
+                </div>
               )
             })
           )}
@@ -492,7 +601,7 @@ function MessageBubble({ message, agentType }: { message: ChatMessage; agentType
             <p className="whitespace-pre-wrap">{message.content}</p>
           </div>
           <p className="text-[10px] text-muted-foreground text-right mt-1 mr-1">
-            {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </p>
         </div>
       </div>
@@ -513,7 +622,7 @@ function MessageBubble({ message, agentType }: { message: ChatMessage; agentType
           </div>
         </div>
         <p className="text-[10px] text-muted-foreground mt-1 ml-1">
-          {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </p>
       </div>
     </div>
