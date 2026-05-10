@@ -1,5 +1,5 @@
 // GangNiaga AI - Autonomous Business Operating System
-// Database Schema v3.0 — Enterprise Architecture
+// Database Schema v4.0 — LivePlan x GangNiaga Enterprise Architecture
 
 generator client {
   provider = "prisma-client-js"
@@ -842,4 +842,368 @@ model ObservabilityEvent {
   createdAt      DateTime @default(now())
 
   @@map("observability_events")
+}
+
+// ============================================
+// IDEA CANVAS & VALIDATION ENGINE (v4.0)
+// Pre-workflow idea pressure-testing system
+// ============================================
+
+model IdeaCanvas {
+  id                String   @id @default(cuid())
+  userId            String
+  organizationId    String
+  title             String
+  problem           String   @default("")
+  solution          String   @default("")
+  targetMarket      String   @default("")
+  competitiveLandscape String @default("")
+  businessModel     String   @default("")
+  uniqueValue       String   @default("")
+  channels          String   @default("")
+  costStructure     String   @default("")
+  revenueStreams    String   @default("")
+  riskAssessment    String   @default("{}") // JSON: { market_risk, tech_risk, financial_risk, team_risk }
+  validationScore   Float    @default(0) // 0-100 aggregate score
+  validationReport  String   @default("{}") // JSON structured report
+  status            String   @default("draft") // draft, validating, validated, needs_rework, archived
+  metadata          String   @default("{}")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  validations    IdeaValidation[]
+  benchmarks     IdeaBenchmark[]
+
+  @@map("idea_canvases")
+}
+
+model IdeaValidation {
+  id           String   @id @default(cuid())
+  canvasId     String
+  category     String   // market, financial, technical, competitive, team, regulatory
+  question     String
+  answer       String   @default("")
+  riskLevel    String   @default("medium") // low, medium, high, critical
+  score        Float    @default(0) // 0-100
+  suggestion   String?  // AI-generated suggestion
+  source       String?  // where the assessment came from
+  order        Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  canvas IdeaCanvas @relation(fields: [canvasId], references: [id], onDelete: Cascade)
+
+  @@map("idea_validations")
+}
+
+model IdeaBenchmark {
+  id            String   @id @default(cuid())
+  canvasId      String
+  benchmarkType String   // market_size, growth_rate, avg_revenue, customer_acquisition_cost, churn_rate, margin
+  industry      String
+  geography     String   @default("global") // my, sg, id, us, global
+  value         Float    @default(0)
+  unit          String   @default("USD") // USD, percent, count
+  year          Int      @default(2024)
+  source        String   // name of data source
+  sourceUrl     String?  // URL for citation
+  confidence    Float    @default(0.5) // 0-1 how reliable
+  metadata      String   @default("{}")
+  createdAt     DateTime @default(now())
+
+  canvas IdeaCanvas @relation(fields: [canvasId], references: [id], onDelete: Cascade)
+
+  @@map("idea_benchmarks")
+}
+
+// ============================================
+// BANK-GRADE RESEARCH SYSTEM (v4.0)
+// Verified sources, citations, industry benchmarks
+// ============================================
+
+model ResearchSource {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   // government, industry_report, academic, financial_institution, news, database
+  url         String?
+  geography   String   @default("global") // my, sg, id, us, global, asean
+  category    String   // economic, industry, demographic, financial, regulatory, technology
+  verified    Boolean  @default(false)
+  rating      Float    @default(0) // 0-5 reliability rating
+  lastUpdated DateTime?
+  metadata    String   @default("{}")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  citations ResearchCitation[]
+
+  @@map("research_sources")
+}
+
+model ResearchCitation {
+  id           String   @id @default(cuid())
+  sourceId     String
+  sessionId    String?  // agent session that produced this citation
+  organizationId String?
+  claim        String   // the assertion being cited
+  citation     String   // the exact citation text
+  dataPoint    String?  // the specific data point referenced
+  confidence   Float    @default(0.5) // 0-1
+  verified     Boolean  @default(false)
+  metadata     String   @default("{}")
+  createdAt    DateTime @default(now())
+
+  source ResearchSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@map("research_citations")
+}
+
+model IndustryBenchmark {
+  id          String   @id @default(cuid())
+  industry    String   // e.g. "saas", "fintech", "ecommerce", "healthcare"
+  subIndustry String?  // e.g. "b2b_saas", "insurtech", "d2c_ecommerce"
+  geography   String   @default("global")
+  metric      String   // e.g. "revenue_growth", "gross_margin", "churn_rate", "cac", "ltv"
+  value       Float    @default(0)
+  unit        String   @default("percent") // percent, USD, ratio, count
+  period      String?  // "2024", "Q1-2024"
+  percentile25 Float?  @default(0) // 25th percentile
+  percentile50 Float?  @default(0) // median
+  percentile75 Float?  @default(0) // 75th percentile
+  source      String   // research firm name
+  sourceUrl   String?  // URL for verification
+  sampleSize  Int?     // number of companies in dataset
+  confidence  Float    @default(0.7) // 0-1
+  metadata    String   @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("industry_benchmarks")
+}
+
+// ============================================
+// PLAN REVIEW AGENT — LENDER PERSONA (v4.0)
+// Multi-agent plan review with narrative vs financial cross-check
+// ============================================
+
+model PlanReview {
+  id               String   @id @default(cuid())
+  planId           String
+  organizationId   String
+  reviewerType     String   @default("lender") // lender, investor, auditor, internal
+  overallScore     Float    @default(0) // 0-100
+  narrativeScore   Float    @default(0) // 0-100 quality of written narrative
+  financialScore   Float    @default(0) // 0-100 quality of financial projections
+  consistencyScore Float    @default(0) // 0-100 narrative vs financial alignment
+  riskScore        Float    @default(0) // 0-100 risk assessment
+  fundabilityScore Float    @default(0) // 0-100 likelihood of getting funded
+  summary          String   @default("") // AI-generated executive summary of review
+  discrepancies    String   @default("[]") // JSON array of narrative vs financial mismatches
+  recommendations  String   @default("[]") // JSON array of improvement suggestions
+  redFlags         String   @default("[]") // JSON array of critical issues
+  strengths        String   @default("[]") // JSON array of plan strengths
+  status           String   @default("pending") // pending, reviewing, completed, needs_revision
+  metadata         String   @default("{}")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  findings PlanReviewFinding[]
+
+  @@map("plan_reviews")
+}
+
+model PlanReviewFinding {
+  id          String   @id @default(cuid())
+  reviewId    String
+  type        String   // discrepancy, red_flag, strength, recommendation, data_gap
+  severity    String   @default("medium") // info, low, medium, high, critical
+  section     String   // which plan section this refers to
+  description String
+  evidence    String?  // supporting data/evidence
+  suggestion  String?  // how to fix/improve
+  narrativeRef String? // reference to narrative text
+  financialRef String? // reference to financial data point
+  resolved    Boolean  @default(false)
+  metadata    String   @default("{}")
+  createdAt   DateTime @default(now())
+
+  review PlanReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@map("plan_review_findings")
+}
+
+// ============================================
+// LIVE PLAN VS ACTUALS TRACKING (v4.0)
+// QuickBooks/Xero integration, real-time variance analysis
+// ============================================
+
+model ActualFinancial {
+  id             String   @id @default(cuid())
+  organizationId String
+  period         String   // "2025-01", "Q1-2025"
+  source         String   // quickbooks, xero, manual, csv_import
+  sourceSyncId   String?  // ID from the accounting software
+  revenue        Float    @default(0)
+  cogs           Float    @default(0)
+  grossProfit    Float    @default(0)
+  operatingExpenses Float  @default(0)
+  netIncome      Float    @default(0)
+  cashFlow       Float    @default(0)
+  cashBalance    Float    @default(0)
+  accountsReceivable Float @default(0)
+  accountsPayable Float  @default(0)
+  totalAssets    Float    @default(0)
+  totalLiabilities Float  @default(0)
+  equity         Float    @default(0)
+  burnRate       Float    @default(0)
+  runway         Float    @default(0)
+  lineItems      String   @default("{}") // JSON: detailed breakdown
+  metadata       String   @default("{}")
+  importedAt     DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  @@unique([organizationId, period, source])
+  @@map("actual_financials")
+}
+
+model ForecastVariance {
+  id              String   @id @default(cuid())
+  organizationId  String
+  forecastId      String?
+  period          String   // "2025-01"
+  metric          String   // revenue, cogs, gross_profit, operating_expenses, net_income, cash_flow, burn_rate
+  forecastValue   Float    @default(0)
+  actualValue     Float    @default(0)
+  variance        Float    @default(0) // absolute variance
+  variancePercent Float    @default(0) // percentage variance
+  alertLevel      String   @default("on_track") // on_track, warning, critical, exceeded
+  analysis        String?  // AI-generated explanation
+  metadata        String   @default("{}")
+  createdAt       DateTime @default(now())
+
+  @@unique([organizationId, forecastId, period, metric])
+  @@map("forecast_variances")
+}
+
+model FinancialAlert {
+  id             String   @id @default(cuid())
+  organizationId String
+  type           String   // revenue_tracking, expense_drift, cash_warning, hiring_affordability, milestone, variance_threshold
+  metric         String
+  message        String
+  severity       String   @default("info") // info, warning, critical
+  period         String?  // which period this alert refers to
+  data           String   @default("{}") // JSON: supporting data
+  dismissed      Boolean  @default(false)
+  dismissedAt    DateTime?
+  actionTaken    String?
+  createdAt      DateTime @default(now())
+
+  @@map("financial_alerts")
+}
+
+model AccountingConnection {
+  id             String   @id @default(cuid())
+  organizationId String
+  provider       String   // quickbooks, xero
+  status         String   @default("disconnected") // connected, disconnected, expired, error
+  accessToken    String?  // encrypted OAuth access token
+  refreshToken   String?  // encrypted OAuth refresh token
+  tokenExpiresAt DateTime?
+  companyId      String?  // realmId for QB, tenant ID for Xero
+  companyName    String?
+  lastSyncAt     DateTime?
+  syncFrequency  String   @default("daily") // hourly, daily, weekly, monthly
+  syncStartDate  String?  // how far back to pull data
+  scopes         String   @default("[]") // JSON: granted OAuth scopes
+  metadata       String   @default("{}")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, provider])
+  @@map("accounting_connections")
+}
+
+// ============================================
+// DYNAMIC PITCH DECK ORCHESTRATOR (v4.0)
+// Auto-synced investor presentations with dynamic variables
+// ============================================
+
+model PitchDeck {
+  id              String   @id @default(cuid())
+  organizationId  String
+  planId          String?
+  title           String
+  templateId      String?  // which template was used
+  status          String   @default("draft") // draft, generating, ready, presented, archived
+  slides          String   @default("[]") // JSON: ordered slide IDs
+  dynamicVariables String  @default("{}") // JSON: { variable_name: value } auto-synced
+  totalSlides     Int      @default(0)
+  fundingAsk      Float?   // how much being raised
+  useOfFunds      String?  // JSON breakdown
+  targetAudience  String   @default("investor") // investor, lender, partner, internal
+  metadata        String   @default("{}")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  slideData    PitchDeckSlide[]
+  questions    PitchDeckQuestion[]
+
+  @@map("pitch_decks")
+}
+
+model PitchDeckSlide {
+  id             String   @id @default(cuid())
+  deckId         String
+  order          Int      @default(0)
+  type           String   // title, problem, solution, market, product, business_model, traction, team, financials, ask, appendix
+  title          String
+  content        String   @default("{}") // JSON: structured slide content
+  layout         String   @default("default") // default, centered, split, data_heavy, visual
+  dataSource     String?  // JSON: reference to plan/forecast data source
+  dynamicFields  String   @default("[]") // JSON: fields that auto-update from financial data
+  speakerNotes   String?
+  imageUrl       String?  // generated or uploaded image
+  metadata       String   @default("{}")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  deck PitchDeck @relation(fields: [deckId], references: [id], onDelete: Cascade)
+
+  @@map("pitch_deck_slides")
+}
+
+model PitchDeckQuestion {
+  id               String   @id @default(cuid())
+  deckId           String
+  question         String
+  category         String   // financial, market, team, product, competition, risk, terms
+  suggestedAnswer  String?  // AI-generated response
+  likelihood       String   @default("medium") // low, medium, high
+  difficulty       String   @default("medium") // easy, medium, hard
+  slideReference   String?  // which slide this question relates to
+  metadata         String   @default("{}")
+  createdAt        DateTime @default(now())
+
+  deck PitchDeck @relation(fields: [deckId], references: [id], onDelete: Cascade)
+
+  @@map("pitch_deck_questions")
+}
+
+model PitchDeckTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  category    String   // seed, series_a, series_b, debt, partner, internal
+  slideCount  Int      @default(0)
+  slides      String   @default("[]") // JSON: template slide definitions
+  thumbnail   String?
+  isDefault   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  metadata    String   @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("pitch_deck_templates")
 }

@@ -5,8 +5,11 @@ import { useAuthStore } from '@/lib/stores/auth-store'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard,
+  Lightbulb,
   FileText,
   TrendingUp,
+  Presentation,
+  Target,
   Bot,
   MessageSquare,
   BarChart3,
@@ -18,6 +21,8 @@ import {
   LogOut,
   Building2,
   Globe,
+  ShieldCheck,
+  Search,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -31,10 +36,15 @@ import {
 
 const navItems: { id: PageId; label: string; icon: React.ElementType; group: string }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, group: 'Overview' },
+  { id: 'idea-canvas', label: 'Idea Canvas', icon: Lightbulb, group: 'Planning' },
   { id: 'plans', label: 'Business Plans', icon: FileText, group: 'Planning' },
   { id: 'forecasting', label: 'Forecasting', icon: TrendingUp, group: 'Planning' },
+  { id: 'actuals', label: 'Plan vs Actuals', icon: Target, group: 'Planning' },
+  { id: 'plan-review', label: 'Plan Review', icon: ShieldCheck, group: 'Planning' },
+  { id: 'pitch-deck', label: 'Pitch Decks', icon: Presentation, group: 'Planning' },
   { id: 'agents', label: 'AI Agents', icon: Bot, group: 'Intelligence' },
   { id: 'copilot', label: 'AI Copilot', icon: MessageSquare, group: 'Intelligence' },
+  { id: 'research', label: 'Research', icon: Search, group: 'Intelligence' },
   { id: 'reports', label: 'Reports', icon: BarChart3, group: 'Operations' },
   { id: 'workflows', label: 'Workflows', icon: Workflow, group: 'Operations' },
   { id: 'observability', label: 'Observability', icon: BarChart3, group: 'DevOps' },

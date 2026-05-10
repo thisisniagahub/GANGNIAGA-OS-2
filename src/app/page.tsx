@@ -15,6 +15,11 @@ import { WorkflowsPage } from '@/components/workflows/workflows-page'
 import { ObservabilityPage } from '@/components/observability/observability-page'
 import { BrowserPage } from '@/components/browser/browser-page'
 import { SettingsPage } from '@/components/settings/settings-page'
+import { IdeaCanvasPage } from '@/components/idea-canvas/idea-canvas-page'
+import { ResearchPage } from '@/components/research/research-page'
+import { PlanReviewPage } from '@/components/plan-review/plan-review-page'
+import { PitchDeckPage } from '@/components/pitch-deck/pitch-deck-page'
+import { ActualsPage } from '@/components/actuals/actuals-page'
 import { useEffect } from 'react'
 
 function PageRouter() {
@@ -23,22 +28,32 @@ function PageRouter() {
   switch (currentPage) {
     case 'dashboard':
       return <DashboardPage />
+    case 'idea-canvas':
+      return <IdeaCanvasPage />
     case 'plans':
       return <PlansPage />
     case 'forecasting':
       return <ForecastingPage />
+    case 'actuals':
+      return <ActualsPage />
+    case 'pitch-deck':
+      return <PitchDeckPage />
     case 'agents':
       return <AgentsPage />
     case 'copilot':
       return <CopilotPage />
     case 'reports':
       return <ReportsPage />
+    case 'research':
+      return <ResearchPage />
     case 'workflows':
       return <WorkflowsPage />
     case 'observability':
       return <ObservabilityPage />
     case 'browser':
       return <BrowserPage />
+    case 'plan-review':
+      return <PlanReviewPage />
     case 'settings':
       return <SettingsPage />
     default:
@@ -77,7 +92,7 @@ function AuthenticatedApp() {
         {/* Footer */}
         <footer className="border-t bg-card px-4 py-2 shrink-0">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>GangNiaga AI OS v2.0</span>
+            <span>GangNiaga AI OS v4.0</span>
             <span>Autonomous Business Operating System</span>
           </div>
         </footer>

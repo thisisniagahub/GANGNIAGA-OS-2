@@ -836,3 +836,390 @@ Stage Summary:
 - Enhanced agent cards showing tools, memory count, and pipeline participation
 - ESLint passes cleanly, dev server compiles without errors
 - File modified: src/components/agents/agents-page.tsx
+
+---
+Task ID: 5-backend
+Agent: actuals-tracking-backend
+Task: Create Live Plan vs Actuals Tracking backend
+
+Work Log:
+- Created src/lib/actuals/engine.ts (~580 lines):
+  - importActuals(): Import actual financial data from QuickBooks/Xero/manual with upsert on (organizationId, period, source) unique constraint; auto-updates AccountingConnection on sync
+  - computeVariances(): Compares forecast financial statements (P&L) against actuals for 7 metrics (revenue, cogs, gross_profit, operating_expenses, net_income, cash_flow, burn_rate); upserts ForecastVariance records; uses z-ai-web-dev-sdk for AI-powered analysis of significant variances (>=15%); alert level classification: on_track (<5%), warning (5-15%), critical (15-30%), exceeded (>30%)
+  - generateAlerts(): Analyzes variances and actuals to generate 6 types of FinancialAlert records: revenue_tracking, expense_drift, cash_warning (low balance, short runway, consecutive negative cash flow), hiring_affordability (burn rate too high for new hires), variance_threshold (net income severely below forecast), milestone (positive revenue growth achievements)
+  - getDashboardData(): Returns combined actuals (last 12 periods) + variances + alerts + connections + summary (avg variances by category, counts by alert level, overall health: healthy/attention/critical)
+  - simulateQuickBooksSync(): Generates 6 months of realistic mock data based on existing forecast or defaults; imports via importActuals with source='quickbooks'; creates/updates AccountingConnection
+  - simulateXeroSync(): Same pattern with slightly different variance characteristics; imports via importActuals with source='xero'; creates/updates AccountingConnection
+  - dismissAlert(): Marks FinancialAlert as dismissed with optional actionTaken note
+
+- Created src/lib/actuals/index.ts: Barrel exports for 7 functions and 4 types
+
+- Created src/app/api/actuals/route.ts:
+  - GET /api/actuals?organizationId=...&type=dashboard|actuals|variances|alerts — Returns dashboard data (default) or specific data type; filters dismissed alerts by default
+  - POST /api/actuals with 5 actions:
+    - action=import: Import actual financial data with { data: ImportActualsData }
+    - action=sync_quickbooks: Simulate QuickBooks sync (auto-computes variances + generates alerts after sync)
+    - action=sync_xero: Simulate Xero sync (auto-computes variances + generates alerts after sync)
+    - action=compute_variances: Recompute variances with optional forecastId
+    - action=generate_alerts: Regenerate alerts
+
+- Created src/app/api/actuals/[id]/route.ts:
+  - PATCH /api/actuals/[id] — Dismiss a FinancialAlert with optional actionTaken note; verifies org membership
+
+Stage Summary:
+- Backend engine and API routes for Actuals Tracking module completed
+- 7 engine functions: importActuals, computeVariances, generateAlerts, getDashboardData, simulateQuickBooksSync, simulateXeroSync, dismissAlert
+- AI-powered variance analysis using z-ai-web-dev-sdk for significant deviations
+- Full QuickBooks/Xero sync simulation with realistic mock data generation
+- 6 alert types covering revenue, expenses, cash, hiring, milestones, variance thresholds
+- ESLint passes cleanly
+- Files: src/lib/actuals/engine.ts, src/lib/actuals/index.ts, src/app/api/actuals/route.ts, src/app/api/actuals/[id]/route.ts
+
+---
+Task ID: 6-backend
+Agent: pitch-deck-backend
+Task: Create Dynamic Pitch Deck Orchestrator backend
+
+Work Log:
+- Created engine.ts (~550 lines) with full pitch deck orchestration engine:
+  - createDeck(): Creates deck from 5 built-in templates (Seed Round 12 slides, Series A 14 slides, Debt Financing 10 slides, Partner Pitch 8 slides, Internal Review 6 slides) with auto slide generation and variable sync
+  - generateSlidesFromPlan(): AI-powered slide content generation from business plan sections + forecast data, with speaker notes
+  - syncDynamicVariables(): Resolves {{variable}} placeholders from linked plan/forecast/KPI data (revenue_year1, burn_rate, runway_months, funding_ask, market_size, mrr, arr, ltv, cac, etc.); auto-updates slide content with resolved values
+  - generateFunderQuestions(): AI generates 8-12 likely funder questions with categories, suggested answers, likelihood, difficulty, slide references; stored in PitchDeckQuestion table
+  - analyzeDeck(): AI scores deck on 6 dimensions (overall, clarity, financialRigor, marketProof, teamStrength, askClarity 0-100) with recommendations, strengths, weaknesses; stored in deck metadata
+  - getTemplates(): Returns 5 built-in template definitions
+  - generateDeckFromScratch(): Full AI-generated deck from organization/plan/forecast data, auto-selects template based on target audience
+  - Helper functions: extractFirstParagraph, extractFirstSentence, extractNumber, formatCurrency, clampScore
+  - All functions use z-ai-web-dev-sdk for AI features, track token usage via observability
+- Created index.ts barrel export with all functions and types
+- Created /api/pitch-decks route.ts: GET (list decks or templates), POST (create from template or AI-generate)
+- Created /api/pitch-decks/[id]/route.ts: GET (single deck with parsed JSON fields), PATCH (sync, generate_questions, analyze, update_slide, general update), DELETE
+
+Stage Summary:
+- Backend engine and API routes for Pitch Deck module completed
+- 5 built-in templates with dynamic variable system
+- Full AI integration for slide generation, funder questions, and deck analysis
+- Dynamic variable auto-sync from plan/forecast/KPI data sources
+- Lint passes cleanly (0 errors), dev server compiles without errors
+- Files: src/lib/pitch-deck/engine.ts, src/lib/pitch-deck/index.ts, src/app/api/pitch-decks/route.ts, src/app/api/pitch-decks/[id]/route.ts
+
+---
+Task ID: 4-backend
+Agent: plan-review-backend
+Task: Create Plan Review Agent (Lender Persona) backend
+
+Work Log:
+- Created src/lib/plan-review/engine.ts (~550 lines) — LangGraph-style 3-agent review pipeline
+  - Narrative Analysis Agent: evaluates written narrative quality (clarity, completeness, persuasiveness) with LLM and fallback heuristic analysis
+  - Financial Analysis Agent: evaluates financial rigor (assumptions, projections, cash flow, break-even) with LLM and fallback for missing data
+  - Cross-Check Agent: compares narrative claims against financial data for discrepancies, receives prior agent findings as context
+  - crossCheckNarrativeVsFinancial(): standalone heuristic cross-check (growth claims vs projections, team size vs payroll, funding needs vs runway, low runway detection)
+  - generateLenderQuestions(): AI-generated questions a lender would ask before approving funding
+  - reviewPlan(): main orchestration function — retrieves plan + financial data, runs 3 agents sequentially, aggregates findings, deduplicates, calculates scores, generates summary
+  - Score calculation: overallScore, narrativeScore, financialScore, consistencyScore, riskScore, fundabilityScore (0-100 each)
+  - Finding types: discrepancy, red_flag, strength, recommendation, data_gap
+  - Robust JSON parsing from LLM output (handles markdown fences, nested objects, array responses)
+  - Graceful fallbacks when LLM calls fail (heuristic-based findings)
+  - Observability integration (trackEvent, trackTokenUsage)
+- Created src/lib/plan-review/index.ts — barrel exports for all engine types and functions
+- Created src/app/api/plan-reviews/route.ts:
+  - POST: creates review record in "reviewing" status, triggers AI pipeline in background, returns 202 Accepted
+  - GET: lists reviews by organizationId and optional planId, includes findings
+  - Duplicate review prevention (one active review per plan)
+  - Uses withApiHandler middleware for auth, rate limiting, RBAC, audit
+  - Background pipeline: runs full review, creates PlanReviewFinding records, updates scores and status
+- Created src/app/api/plan-reviews/[id]/route.ts:
+  - GET: returns review with findings, grouped by type and severity, with summary statistics
+  - PATCH: update review status (pending/reviewing/completed/needs_revision), resolve/unresolve individual findings
+  - Parses JSON fields (discrepancies, recommendations, redFlags, strengths, lenderQuestions) for convenience
+  - Org membership verification on all operations
+
+Stage Summary:
+- Complete Plan Review Agent (Lender Persona) backend with LangGraph-style 3-agent orchestration
+- 4 files created: engine.ts, index.ts, and 2 API route files
+- Lint passes cleanly (0 errors), dev server compiles without errors
+- Files: src/lib/plan-review/engine.ts, src/lib/plan-review/index.ts, src/app/api/plan-reviews/route.ts, src/app/api/plan-reviews/[id]/route.ts
+
+---
+Task ID: 2-backend
+Agent: idea-canvas-backend
+Task: Create Idea Canvas & Validation Engine backend
+
+Work Log:
+- Created src/lib/idea-validation/engine.ts (~530 lines):
+  - validateIdea(canvasData): AI-powered full validation using z-ai-web-dev-sdk
+    - Iterates over 6 validation categories (market, financial, technical, competitive, team, regulatory)
+    - For each category, generates 5 questions from industry/targetMarket-specific templates
+    - Uses LLM to analyze canvas data against each question, producing score, risk level, and suggestion
+    - Computes weighted aggregate validation score (0-100) with category weights (market 25%, financial 20%, technical 18%, competitive 15%, team 12%, regulatory 10%)
+    - Generates grade (A-F) from score
+    - Performs AI risk assessment across 4 risk dimensions (market_risk, tech_risk, financial_risk, team_risk)
+    - Extracts strengths (score >= 70), weaknesses (score < 40), and recommendations
+    - Generates AI executive summary of validation results
+    - Falls back to heuristic scoring when LLM calls fail
+  - generateValidationQuestions(industry, targetMarket): Creates category-specific validation questions using AI
+    - Generates 5 questions per category customized to industry and target market
+    - Returns empty-answer ValidationQuestion objects ready for user input or AI analysis
+  - analyzeRisk(canvasData, categories?, zaiInstance?): Standalone risk analysis function
+    - AI-powered risk assessment with structured JSON output (level, score, factors per dimension)
+    - Heuristic fallback based on field completeness and category scores
+    - Can accept pre-computed category scores to avoid redundant LLM calls
+  - persistValidation(canvasId, report): Saves validation results to database
+    - Deletes existing IdeaValidation records for the canvas
+    - Creates new IdeaValidation records for each question across all categories
+    - Updates IdeaCanvas with validationScore, riskAssessment JSON, validationReport JSON, status='validated'
+  - Helper functions: parseAIJsonResponse(), clampScore(), validateRiskLevel(), scoreToGrade(), scoreToRiskLevel(), normalizeRisk(), computeHeuristicRisk(), generateFallbackSummary()
+
+- Created src/lib/idea-validation/index.ts: Barrel exports for all 4 functions and 5 types
+  - Exports: validateIdea, generateValidationQuestions, analyzeRisk, persistValidation
+  - Types: CanvasData, ValidationCategory, ValidationQuestion, RiskAssessment, ValidationReport
+
+- Created src/app/api/idea-canvases/route.ts:
+  - POST: Create idea canvas with optional AI validation (validateWithAI flag)
+    - Creates IdeaCanvas record with all 10 canvas fields + userId + organizationId
+    - If validateWithAI=true: sets status to 'validating', runs validateIdea() + persistValidation(), tracks token usage
+    - Returns canvas with nested validations and benchmarks
+    - Uses withApiHandler middleware (auth, rate limit, RBAC, audit)
+  - GET: List idea canvases by organizationId with optional status filter
+    - Returns canvases with nested validation summaries (id, category, riskLevel, score)
+    - Uses requireAuth middleware
+
+- Created src/app/api/idea-canvases/[id]/route.ts:
+  - GET: Single canvas with full validations and benchmarks, parsed JSON fields
+  - PATCH: Update canvas fields (title, problem, solution, targetMarket, etc.) or trigger AI validation
+    - action='validate': Sets status to 'validating', runs validateIdea() + persistValidation(), returns updated canvas with validationReport
+    - Regular field updates: validates status transitions (draft/validating/validated/needs_rework/archived)
+    - Supports metadata merge updates
+  - DELETE: Delete canvas with cascading validation/benchmark cleanup
+  - All routes verify user organization membership for access control
+  - Uses requireAuth middleware, logAction for audit, trackEvent for observability
+
+Stage Summary:
+- Backend engine and API routes for Idea Canvas & Validation module completed
+- 4 files created: engine.ts, index.ts, route.ts (list+create), [id]/route.ts (get+update+delete+validate)
+- AI validation across 6 categories with weighted scoring, 4-dimensional risk assessment, and structured report generation
+- Full CRUD API with validation trigger action, auth/rate-limit/audit middleware integration
+- ESLint passes cleanly, dev server compiles without errors
+- Files: src/lib/idea-validation/engine.ts, src/lib/idea-validation/index.ts, src/app/api/idea-canvases/route.ts, src/app/api/idea-canvases/[id]/route.ts
+
+---
+Task ID: 3-backend
+Agent: research-backend
+Task: Create Bank-Grade Research Agent backend
+
+Work Log:
+
+1. Research Engine (src/lib/research/engine.ts, ~640 lines):
+   - getVerifiedSources(geography?, category?): Queries ResearchSource table with optional geography/category filters, returns sorted by verified status and rating
+   - searchBenchmarks(industry, geography?, metric?): Queries IndustryBenchmark table with industry required, optional geography/metric filters, sorted by confidence and geography
+   - createCitation(sourceId, claim, citation, dataPoint?, confidence?): Creates ResearchCitation record linked to a source; validates source exists; clamps confidence to 0-1 range
+   - validateCitation(citationId): Comprehensive validation — checks source verified status, rating threshold (3.0), active status, confidence level (>0.3), data point presence, source recency (2yr threshold); auto-verifies if source is verified and confidence >= 0.7; returns { valid, citation, issues[] }
+   - generateResearchReport(topic, geography, industry): AI-powered report generation using z-ai-web-dev-sdk; fetches relevant sources + benchmarks for AI context; generates 8-section bank-grade report; extracts [Source: Name] citations from AI output and creates CitationEntry records; returns structured ResearchReport with sections, citations, benchmarks, and confidence score
+   - seedDefaultSources(): Seeds 53 verified research sources across 7 categories:
+     - Government (10): DOSM, MACC, BNM, MOF, EPU, MDEC, MIDA, MITI, SME Corp, MATRADE
+     - Financial institutions (5): World Bank, IMF, ADB, BNM Reports, MAS
+     - Research firms (10): McKinsey, BCG, Bain, Deloitte, PwC, EY, KPMG, Gartner, Forrester, Statista
+     - Regional (4): ASEAN Stats, ASEAN Secretariat, JP Morgan, Goldman Sachs
+     - Academic (4): SSRN, NBER, Google Scholar, ResearchGate
+     - News (5): Bloomberg, Reuters, FT, CNBC, The Edge Malaysia
+     - Database (4): Crunchbase, PitchBook, CB Insights, Tracxn
+     - Additional (11): Khazanah Research, ISIS Malaysia, Singapore DoS, BPS Indonesia, WEF, UNCTAD, Fitch, Moodys, SP Global, Euromonitor, IDC, Frost & Sullivan, Marsh McLennan
+   - seedDefaultBenchmarks(): Seeds 40+ industry benchmarks across 4 industries (SaaS, Fintech, E-commerce, Healthcare) and 4 geographies (MY, SG, ASEAN, Global) with metrics including revenue_growth, gross_margin, churn_rate, ltv_cac_ratio, cac, arr_per_employee, take_rate, npl_ratio, conversion_rate; includes percentile data (p25/p50/p75), sample sizes, and confidence scores
+
+2. Research Barrel Exports (src/lib/research/index.ts):
+   - Exports 7 functions: getVerifiedSources, searchBenchmarks, createCitation, validateCitation, generateResearchReport, seedDefaultSources, seedDefaultBenchmarks
+   - Exports 4 types: VerifiedSource, CitationEntry, BenchmarkEntry, ResearchReport
+
+3. Research API Route (src/app/api/research/route.ts):
+   - GET /api/research?action=sources&geography=my&category=financial — List verified sources with filters
+   - GET /api/research?action=benchmarks&industry=saas&geography=my — Search benchmarks
+   - GET /api/research?action=citations&organizationId=xxx — List citations for organization
+   - POST /api/research { action: 'generate_report', topic, geography, industry } — AI-generate research report
+   - POST /api/research { action: 'create_citation', sourceId, claim, citation, dataPoint, confidence } — Create citation
+   - POST /api/research { action: 'seed_sources' } — Seed 53 default verified sources
+   - POST /api/research { action: 'seed_benchmarks' } — Seed 40+ default industry benchmarks
+   - All endpoints include observability event tracking
+
+4. Research [id] API Route (src/app/api/research/[id]/route.ts):
+   - GET /api/research/[id]?type=source — Get single source with citations
+   - GET /api/research/[id]?type=citation — Get citation with source
+   - GET /api/research/[id]?type=benchmark — Get benchmark by ID
+   - PATCH /api/research/[id] { action: 'validate_citation' } — Validate citation with auto-verify
+   - PATCH /api/research/[id] { action: 'update_source', ... } — Update source fields
+   - PATCH /api/research/[id] { action: 'update_benchmark', ... } — Update benchmark fields
+
+Stage Summary:
+- Bank-Grade Research Agent backend engine and API routes completed
+- 53 verified sources seeded across government, financial, research, academic, news, and database categories
+- 40+ industry benchmarks for SaaS/Fintech/E-commerce/Healthcare across MY/SG/ASEAN/Global regions
+- AI-powered research report generation with automatic citation extraction
+- Citation validation with auto-verify for high-confidence sources
+- Full CRUD API for sources, benchmarks, and citations
+- ESLint passes cleanly, dev server compiles without errors
+- Files: src/lib/research/engine.ts, src/lib/research/index.ts, src/app/api/research/route.ts, src/app/api/research/[id]/route.ts
+
+---
+Task ID: 2-ui
+Agent: idea-canvas-ui
+Task: Create Idea Canvas & Validation Engine UI
+
+Work Log:
+- Created /home/z/my-project/src/components/idea-canvas/idea-canvas-page.tsx (~580 lines)
+- Tab 1 (Idea Canvas): Lean Canvas 9-block grid (Problem, Solution, UVP, Target Market, Channels, Revenue Streams, Cost Structure, Competitive Landscape, Business Model) with editable textareas, title input, Save & Validate with AI buttons, status badge (draft/validated/needs_rework), unsaved changes indicator
+- Tab 2 (AI Validation): Overall validation score as radial gauge chart (PieChart with inner radius), risk assessment radar chart (5 dimensions), 6 category scores with progress bars, validation questions with risk level badges, strengths/weaknesses lists, recommendations with numbered cards, loading spinner animation during AI validation
+- Tab 3 (Benchmarks): Industry benchmarks table (Metric, Industry Avg, Your Value, Percentile, Source), geography filter buttons (MY, SG, ASEAN, Global), add benchmark dialog, percentile color coding, source citations with external links
+- Canvas list view with stat cards, progress bars, and status badges
+- Uses useAuthStore for organization info, fetches from /api/idea-canvases
+- Handles create, save (PATCH), validate (POST), add benchmark actions
+- Loading skeletons, empty states, responsive mobile-first design
+- Matches existing style from plans-page.tsx (Card components, Badge, Separator, etc.)
+- ESLint passes cleanly, dev server compiles without errors
+
+Stage Summary:
+- Idea Canvas UI component completed with 3 tabs: Canvas, Validation, Benchmarks
+- Full CRUD support with AI validation flow
+- Charts: gauge (PieChart), radar (RadarChart)
+- File: src/components/idea-canvas/idea-canvas-page.tsx
+
+---
+Task ID: 3-ui
+Agent: research-ui
+Task: Create Bank-Grade Research Agent UI
+
+Work Log:
+- Created src/components/research/research-page.tsx (~680 lines) with 4 tabs: Sources, Benchmarks, Citations, AI Report
+- Tab 1 (Sources): Grid of verified source cards with type badges, geography tags, star ratings, verified badges; search bar; filters for geography/category/type; "Seed Sources" button; loading skeletons and empty states
+- Tab 2 (Benchmarks): Industry benchmarks table with columns for sub-industry, metric, value, percentiles, geography, source, confidence; industry/geography filters; comparison view with user value inputs; horizontal bar chart comparing user values vs industry benchmarks; "Seed Benchmarks" button
+- Tab 3 (Citations): Citation list with claim, citation text, source badge, data point, confidence level badge, verified status; Add Citation dialog with source selector, claim, citation text, data point, confidence slider; Validate Citation button calling PATCH /api/research/[id]; filters for confidence level and verified status
+- Tab 4 (AI Report): Report generator form with topic input, geography selector, industry selector, Generate Report button; loading animation with progress bar; report display with Executive Summary, Market Overview, Competitive Landscape, Industry Benchmarks, Risk Factors, Opportunities, Inline Citations (numbered), References section; copy-to-clipboard functionality
+- Added 'research' PageId to app-store.ts
+- Added ResearchPage import and routing case in page.tsx
+- Added Research nav item (Shield icon) to Intelligence group in app-sidebar.tsx
+- All API calls use /api/research endpoint (GET for sources/benchmarks/citations, POST for seed/generate/create_citation, PATCH for validate)
+- Lint passes cleanly, dev server compiles without errors
+
+Stage Summary:
+- Research UI component completed with 4 fully functional tabs
+- Integrated with existing API routes at /api/research
+- Consistent visual style matching other pages (Cards, Badges, Tabs, recharts)
+- Responsive design with mobile-friendly layouts
+- Files: src/components/research/research-page.tsx, src/lib/stores/app-store.ts, src/app/page.tsx, src/components/layout/app-sidebar.tsx
+
+---
+Task ID: 6-ui
+Agent: pitch-deck-ui
+Task: Create Dynamic Pitch Deck Orchestrator UI
+
+Work Log:
+- Created pitch-deck-page.tsx (~870 lines) with 4 tabs: Decks, Editor, Questions, Variables
+- Tab 1 (Decks): Grid of deck cards with title, template, slides, status, funding ask, last updated. "Create New Deck" dialog with 5 templates, plan linking, target audience, AI Generate option. Each card has Edit, Preview, Delete, Sync Variables, Generate Questions buttons.
+- Tab 2 (Editor): 3-column layout — slide navigation sidebar (type icons, dynamic field counts), slide preview (center) with edit mode, slide properties panel (right) with type/layout selectors, dynamic fields with current values, speaker notes, deck-level settings (status, funding ask, audience). Toolbar with Sync, AI Analyze, Export.
+- Tab 3 (Funder Questions): AI-generated questions grouped by category (Financial, Market, Team, Product, Competition, Risk, Terms) with collapsible suggested answers. Likelihood and difficulty badges. Slide reference linking.
+- Tab 4 (Dynamic Variables): Table of all variables across all decks with Variable, Current Value, Source, Deck, Last Updated columns. "Sync All" button. Quick preview cards for common variables.
+- Added 'pitch-deck' page to app-store PageId type
+- Added Pitch Deck navigation item to sidebar (Planning group, Presentation icon)
+- Added PitchDeckPage to page router in page.tsx
+- Lint passes cleanly, dev server compiles without errors
+
+Stage Summary:
+- Pitch Deck UI component completed with full CRUD, variable sync, question generation, and AI analysis
+- Files created: src/components/pitch-deck/pitch-deck-page.tsx
+- Files modified: src/lib/stores/app-store.ts, src/components/layout/app-sidebar.tsx, src/app/page.tsx
+
+---
+Task ID: 4-ui
+Agent: plan-review-ui
+Task: Create Plan Review Agent UI
+
+Work Log:
+- Created src/components/plan-review/plan-review-page.tsx (~800 lines) with 3 tabs
+- Tab 1 (Dashboard): Review list with score gauges, status badges, finding counts, summary stats cards, Start New Review dialog with plan selector and reviewer type (lender/investor/auditor/internal)
+- Tab 2 (Detail): 6 circular score gauges (overall, narrative, financial, consistency, risk, fundability), radar chart via recharts, executive summary, findings panel with type/severity filter and resolve/unresolve toggle, narrative vs financial cross-check visualization with side-by-side mismatch arrows, lender questions, red flags/strengths/recommendations/discrepancies lists
+- Tab 3 (LangGraph Flow): 3-agent pipeline visualization (Narrative → Financial → Cross-Check) with step status, finding counts per agent, progress bar for running reviews, completion/failure status cards
+- Added 'plan-review' to PageId type in app-store
+- Added Plan Review nav item (ShieldCheck icon) to sidebar under Planning group
+- Added PlanReviewPage route to page.tsx router
+- Fetches reviews from GET /api/plan-reviews, plans from GET /api/plans
+- Creates reviews via POST /api/plan-reviews with planId, organizationId, reviewerType
+- Resolves/unresolves findings via PATCH /api/plan-reviews/[id]
+- Auto-polls every 5s when review is in 'reviewing' status
+- Uses useAuthStore for organization context
+- ESLint passes cleanly
+
+Stage Summary:
+- Plan Review UI component completed with full 3-tab interface
+- Files created: src/components/plan-review/plan-review-page.tsx
+- Files modified: src/lib/stores/app-store.ts, src/components/layout/app-sidebar.tsx, src/app/page.tsx
+
+---
+Task ID: 5-ui
+Agent: actuals-ui
+Task: Create Live Plan vs Actuals Tracking UI
+
+Work Log:
+- Created actuals-page.tsx (~850 lines) with 4 tabs: Dashboard, Variance Analysis, Integrations, Alerts
+- Dashboard tab: 4 KPI cards (Revenue Tracking, Expense Status, Cash Position, Burn Rate) with forecast vs actual, variance %, trend arrows, color-coded alert levels
+- Dashboard tab: Plan vs Actuals grouped bar chart (revenue + expenses, forecast vs actual) using recharts
+- Dashboard tab: Variance trend line chart showing variance % over time for 4 key metrics with warning/critical reference lines
+- Dashboard tab: Financial Health Score gauge (SVG circular gauge, 0-100 score based on variance distribution)
+- Dashboard tab: Variance Summary card with progress bars per alert level + average variance stats
+- Dashboard tab: Recent Actuals card showing latest imported periods
+- Variance Analysis tab: Detailed table with Period, Metric, Forecast, Actual, Variance ($), Variance (%), Alert Level columns
+- Variance Analysis tab: Filters for period range, metric type, alert level
+- Variance Analysis tab: Expandable rows showing AI-generated analysis for each variance
+- Variance Analysis tab: Export to CSV button that generates and downloads a CSV file
+- Integrations tab: QuickBooks connection card with status badge, company name, last sync, sync frequency, Connect/Sync Now/Disconnect buttons
+- Integrations tab: Xero connection card with same layout
+- Integrations tab: Manual Import dialog with period, revenue, expenses, net income, cash flow, cash balance fields
+- Integrations tab: CSV Import dialog with textarea and column format instructions
+- Integrations tab: Sync History table showing all imported periods by source
+- Alerts tab: Financial alerts with severity badges (info/warning/critical), type badges, period badges
+- Alerts tab: Dismiss button per alert calling PATCH /api/actuals/[id]
+- Alerts tab: Filters for severity, alert type, show dismissed toggle
+- Alerts tab: Alert type definitions legend explaining each type
+- All data fetched from GET /api/actuals?organizationId=xxx
+- Sync actions: POST /api/actuals with action=sync_quickbooks/sync_xero
+- Manual/CSV import: POST /api/actuals with action=import
+- Variance computation: POST /api/actuals with action=compute_variances
+- Alert dismissal: PATCH /api/actuals/[id]
+- Loading skeletons for initial data fetch
+- Empty state with QuickBooks/Xero sync prompts when no data
+- Responsive design with mobile-first approach
+- Added 'actuals' PageId to app-store.ts
+- Added 'Plan vs Actuals' nav item to app-sidebar.tsx under Planning group
+- Added ActualsPage import and route to page.tsx PageRouter
+- Added page title and description to app-header.tsx
+- ESLint passes cleanly, dev server compiles without errors
+
+Stage Summary:
+- Actuals Tracking UI component completed with all 4 tabs fully implemented
+- Files: src/components/actuals/actuals-page.tsx (new), src/lib/stores/app-store.ts (modified), src/components/layout/app-sidebar.tsx (modified), src/app/page.tsx (modified), src/components/layout/app-header.tsx (modified)
+
+---
+Task ID: v4.0-integration
+Agent: Main Agent
+Task: Merge 5 LivePlan x GangNiaga core system upgrades into the project
+
+Work Log:
+- Updated Prisma schema from v3.0 to v4.0 with 14 new models across 5 modules
+- Created 5 backend engines: idea-validation, research, plan-review, actuals, pitch-deck
+- Created 5 barrel exports for each engine
+- Created 10 API routes (5 main + 5 detail routes)
+- Created 5 UI page components: IdeaCanvas, Research, PlanReview, Actuals, PitchDeck
+- Updated app-store.ts with 5 new PageId types
+- Updated app-sidebar.tsx with 5 new navigation items organized in Planning/Intelligence groups
+- Updated page.tsx with 5 new routes in PageRouter + version bump to v4.0
+- Updated app-header.tsx with titles and descriptions for all 15 pages
+- Fixed MessageSquareQuestion icon import (replaced with HelpCircle)
+- Ran db:push to sync schema, lint passes cleanly, dev server compiles
+
+Stage Summary:
+- 5 core system upgrades fully integrated:
+  1. Idea Canvas & Validation Engine — Lean Canvas grid, AI validation, risk assessment, benchmarks
+  2. Bank-Grade Research Agent — 50+ verified sources, citations, industry benchmarks, AI reports
+  3. Plan Review Agent (Lender Persona) — 3-agent LangGraph-style pipeline, narrative vs financial cross-check
+  4. Live Plan vs Actuals Tracking — QuickBooks/Xero integration, variance analysis, financial alerts
+  5. Dynamic Pitch Deck Orchestrator — 5 templates, slide editor, funder questions, dynamic variables
+- Total new files: 25+ (5 engines, 5 indexes, 10 API routes, 5 UI pages)
+- Total new Prisma models: 14 (IdeaCanvas, IdeaValidation, IdeaBenchmark, ResearchSource, ResearchCitation, IndustryBenchmark, PlanReview, PlanReviewFinding, ActualFinancial, ForecastVariance, FinancialAlert, AccountingConnection, PitchDeck, PitchDeckSlide, PitchDeckQuestion, PitchDeckTemplate)
+- All modules interconnected: Idea Canvas → Plans → Forecasting → Actuals → Plan Review → Pitch Decks

@@ -20,23 +20,37 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 
 const pageTitles: Record<PageId, string> = {
   dashboard: 'Dashboard',
+  'idea-canvas': 'Idea Canvas',
   plans: 'Business Plans',
   forecasting: 'Financial Forecasting',
+  actuals: 'Plan vs Actuals',
+  'plan-review': 'Plan Review',
+  'pitch-deck': 'Pitch Decks',
   agents: 'AI Agents',
   copilot: 'AI Copilot',
+  research: 'Research',
   reports: 'Reports',
   workflows: 'Workflows',
+  observability: 'Observability',
+  browser: 'Browser',
   settings: 'Settings',
 }
 
 const pageDescriptions: Record<PageId, string> = {
   dashboard: 'Overview of your business metrics and AI insights',
+  'idea-canvas': 'Pressure-test your ideas before financial investment',
   plans: 'Create and manage AI-powered business plans',
   forecasting: 'Financial projections and scenario modeling',
+  actuals: 'Live financial tracking with QuickBooks/Xero integration',
+  'plan-review': 'AI-powered lender review of your business plans',
+  'pitch-deck': 'Dynamic investor presentations with auto-synced data',
   agents: 'Autonomous AI agents for business operations',
   copilot: 'Chat with your AI business assistant',
+  research: 'Bank-grade research with verified sources and citations',
   reports: 'Generate and export business reports',
   workflows: 'Automate repetitive business tasks',
+  observability: 'System monitoring and token usage tracking',
+  browser: 'Browser automation and web scraping',
   settings: 'Manage your account and organization',
 }
 
