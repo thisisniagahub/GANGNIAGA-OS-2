@@ -1,24 +1,33 @@
 <p align="center">
-  <img src="public/logo.svg" alt="GangNiaga AI Logo" width="80" height="80" />
-  <h1 align="center">GangNiaga AI OS</h1>
-  <p align="center">
-    <strong>Autonomous AI Business Operating System</strong>
-  </p>
-  <p align="center">
-    OpenClaw-inspired agentic runtime • AI-native business intelligence • Multi-agent orchestration<br/>
-    Browser automation infrastructure • Financial forecasting engine • Workflow automation ecosystem
-  </p>
+  <img src="public/logo.svg" alt="GangNiaga AI OS Logo" width="96" height="96" />
+</p>
+
+<h1 align="center">GangNiaga AI OS</h1>
+
+<p align="center">
+  <strong>Autonomous Business Operating System for Startups & SMEs</strong>
+</p>
+
+<p align="center">
+  <em>"Your AI Executive Team, Always On."</em>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Next.js-16-black?logo=next.js" alt="Next.js 16" />
   <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react" alt="React 19" />
-  <img src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript" alt="TypeScript 5" />
   <img src="https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss" alt="Tailwind CSS 4" />
   <img src="https://img.shields.io/badge/Prisma-6-2D3748?logo=prisma" alt="Prisma 6" />
+  <img src="https://img.shields.io/badge/Zustand-5-FF6B6B" alt="Zustand 5" />
   <img src="https://img.shields.io/badge/Bun-Runtime-000?logo=bun" alt="Bun" />
-  <img src="https://img.shields.io/badge/Schema-38_Models-success" alt="38 DB Models" />
-  <img src="https://img.shields.io/badge/API-20+_Endpoints-blue" alt="20+ API Endpoints" />
+  <br/>
+  <img src="https://img.shields.io/badge/Pages-15-blue" alt="15 Pages" />
+  <img src="https://img.shields.io/badge/AI_Agents-8-8B5CF6" alt="8 AI Agents" />
+  <img src="https://img.shields.io/badge/Tools-10-orange" alt="10 Tools" />
+  <img src="https://img.shields.io/badge/DB_Models-38-success" alt="38 DB Models" />
+  <img src="https://img.shields.io/badge/Export_Formats-6-green" alt="6 Export Formats" />
+  <img src="https://img.shields.io/badge/API-20%2B_Endpoints-blue" alt="20+ API Endpoints" />
+  <img src="https://img.shields.io/badge/License-MIT-yellow" alt="MIT License" />
 </p>
 
 ---
@@ -26,143 +35,198 @@
 ## Table of Contents
 
 - [Overview](#overview)
-- [Core Product Identity](#core-product-identity)
-- [Key Features](#key-features)
+- [Features](#features)
 - [Tech Stack](#tech-stack)
-- [Architecture](#architecture)
-- [Project Structure](#project-structure)
 - [Getting Started](#getting-started)
-- [Core Modules](#core-modules)
-- [AI Agent System](#ai-agent-system)
-- [Agent Orchestration (DAG Pipelines)](#agent-orchestration-dag-pipelines)
-- [Tool Execution Runtime](#tool-execution-runtime)
-- [Memory Architecture](#memory-architecture)
-- [Browser Automation](#browser-automation)
-- [Financial Intelligence Engine](#financial-intelligence-engine)
-- [Export System](#export-system)
-- [Observability System](#observability-system)
-- [Security Architecture](#security-architecture)
-- [Database Schema](#database-schema)
-- [API Reference](#api-reference)
-- [State Management](#state-management)
+- [Project Structure](#project-structure)
+- [Available Scripts](#available-scripts)
 - [Environment Variables](#environment-variables)
-- [Roadmap](#roadmap)
+- [Module Overview](#module-overview)
+- [AI Agent System](#ai-agent-system)
+- [API Overview](#api-overview)
+- [Database Overview](#database-overview)
+- [Security Architecture](#security-architecture)
+- [Export System](#export-system)
+- [Observability](#observability)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
 - [License](#license)
 
 ---
 
 ## Overview
 
-**GangNiaga AI OS** is an enterprise-grade Autonomous Business Operating System that combines:
+**GangNiaga AI OS** is an enterprise-grade Autonomous Business Operating System that replaces fragmented business planning tools, expensive consultants, and static spreadsheets with an integrated, AI-native platform.
 
-1. **LivePlan-style** business intelligence
-2. **OpenClaw-style** autonomous agents
-3. **Manus-style** workflow execution
-4. **Devin-style** orchestration systems
-5. **LangGraph-style** AI runtime coordination
+It combines the strategic rigor of **LivePlan**, the autonomous execution of **OpenClaw**, the workflow intelligence of **Manus**, the orchestration power of **Devin**, and the runtime coordination of **LangGraph** — into a single, cohesive operating system.
 
-This is NOT a simple AI chatbot, CRUD dashboard, template SaaS, or ChatGPT wrapper.
+### What It Is
 
-This IS:
-- An enterprise AI operating system
-- Autonomous workflow infrastructure
-- Distributed agent runtime platform
-- Browser automation ecosystem
-- Business intelligence execution engine
+- An **enterprise AI operating system** — not a chatbot wrapper or CRUD dashboard
+- **Autonomous workflow infrastructure** — agents that execute, not just suggest
+- **Distributed agent runtime** — DAG-based multi-agent pipeline orchestration
+- **Financial intelligence engine** — SaaS metrics, burn rate, scenario analysis, investor metrics
+- **Browser automation ecosystem** — dual-strategy web automation with session management
+- **Business intelligence execution engine** — from idea validation to investor-ready outputs
 
----
+### What It Is Not
 
-## Core Product Identity
+- A simple AI chatbot or ChatGPT wrapper
+- A CRUD dashboard or template SaaS
+- A static reporting tool
 
-| Traditional Business Tools | GangNiaga AI OS |
+### Core Value Propositions
+
+| Value | Description |
 |---|---|
-| Manual data entry and analysis | AI auto-generates insights, forecasts, and actions |
-| Static dashboards | Dynamic KPI intelligence with AI-driven recommendations |
-| Siloed business functions | Unified OS with interconnected agents and pipelines |
-| Reactive reporting | Proactive AI agents that monitor, alert, and act autonomously |
-| One-size-fits-all templates | Context-aware, memory-injected, industry-specific AI generation |
-| No tool access | 10 registered tools with permission-based execution |
-| No memory | Persistent memory architecture with relevance ranking |
-| Manual browser tasks | Autonomous browser automation with agent-browser |
-| No observability | Full execution monitoring, distributed tracing, token tracking |
+| **Autonomous Intelligence** | 8 specialized AI agents that execute tasks, not just chat |
+| **Financial Rigor** | SaaS metrics, burn rate, scenario analysis, forecast validation, plan vs actuals |
+| **Bank-Grade Research** | 50+ verified sources with citations, confidence scores, and industry benchmarks |
+| **Pipeline Orchestration** | DAG-based multi-agent pipelines with dependency resolution and parallel execution |
+| **Memory That Learns** | Persistent memory with relevance ranking, LLM compression, and time decay |
+| **Investor-Ready Outputs** | Dynamic pitch decks, 6-format export, multi-agent plan review |
+| **ASEAN-First** | Multi-currency, regional benchmarks, QuickBooks/Xero integration |
 
 ---
 
-## Key Features
+## Features
 
-### Business Intelligence
-- **AI Business Plan Builder** — 8-section plans with AI generation per section
-- **Financial Forecasting Engine** — Multi-scenario modeling (Best/Base/Worst/Custom) with revenue/expense tracking, auto-generated P&L, Balance Sheet, Cash Flow
-- **KPI Dashboard** — Real-time tracking with AI-computed insights and health indicators
-- **AI Report Generator** — 5 report types (Investor, Board, KPI, Financial, Market) with AI
-- **Financial Intelligence Engine** — SaaS metrics, burn rate analysis, scenario analysis, KPI health scoring, investor metrics, forecast validation
+### 🧠 AI Agent System
 
-### AI Agent System
 - **8 Specialized Agents** — CFO, CEO, Research, Growth, Operations, Fundraising, Browser, Reporting
-- **Agent Orchestrator** — Memory-injected system prompts, tool call parsing, persistent sessions
-- **DAG Pipeline Engine** — Multi-agent orchestration with topological sort, parallel execution, template resolution
-- **Persistent Memory** — 7 memory categories with relevance ranking, access tracking, aging, compression
+- **DAG Pipeline Engine** — Multi-agent orchestration with topological sort and parallel execution
+- **Persistent Memory** — 7 memory categories with relevance ranking, access tracking, aging, and LLM compression
 - **10 Registered Tools** — Web search, forecast calculate, browser navigate, email send, export generate, CRM lookup, analytics query, KPI update, notification send, code execute
+- **Tool Approval Flow** — High-risk tools (`email_send`, `code_execute`) require explicit approval before execution
 
-### Automation & Integration
-- **DAG Workflow Engine** — Step-level execution with topological sort, condition branching, template resolution
-- **6 Step Types** — Agent, Tool, Condition, Delay, Notification, Pipeline
-- **5 Pre-built Templates** — Weekly KPI Report, Competitor Monitor, Revenue Alert, Investor Update, Slack Summary
-- **Browser Automation** — agent-browser integration with session management, screenshot capture, content extraction
-- **Real Export System** — PDF, DOCX, PPTX, XLSX, CSV, Markdown generation with actual file download
+### 💰 Financial Intelligence Engine
 
-### Enterprise Features
-- **RBAC Permission System** — Role hierarchy (super_admin → viewer) with resource-action matrix
-- **Agent Permission System** — Per-agent resource/action permissions with constraints
-- **Rate Limiting** — Per-endpoint configurable rate limits with IETF standard headers
-- **Audit Logging** — Complete audit trail for all API actions (success, failure, denied)
-- **API Key Management** — SHA-256 hashed keys with permissions and expiration
-- **Multi-tenant Architecture** — Organization-based data isolation
-- **Observability** — Execution monitoring, distributed tracing, AI token tracking with cost estimation
+- **SaaS Metrics** — MRR, ARR, CAC, LTV, LTV:CAC ratio, churn rate, gross margin, payback period, Rule of 40
+- **Burn Rate Analysis** — Gross/net burn, cash runway (months), burn trend detection, monthly burn history
+- **Scenario Analysis** — Best / Base / Worst / Custom scenarios with adjustable multipliers
+- **KPI Health Scoring** — Weighted scoring across 5 categories (Revenue 30%, Cash 25%, Growth 20%, SaaS 15%, Efficiency 10%) with A-F grading
+- **Investor Metrics** — Revenue multiple valuation, traction metrics, unit economics, burn efficiency
+- **Forecast Validation** — Error detection, assumption documentation, risk factor identification
+
+### 💡 Idea Validation Engine
+
+- **6-Category Validation** — Market (25%), Financial (20%), Technical (18%), Competitive (15%), Team (12%), Regulatory (10%)
+- **Scoring System** — 0-100 aggregate score with weighted category scores and letter grade (A-F)
+- **Risk Assessment** — 4-dimension risk scoring (market, tech, financial, team) with severity levels
+- **Industry Benchmarks** — Compare against geography-specific benchmarks (MY, SG, ID, US, Global)
+
+### 📋 Multi-Agent Plan Review
+
+- **3 Review Agents** — Narrative Agent, Financial Agent, Cross-Check Agent
+- **4 Reviewer Personas** — Lender, Investor, Auditor, Internal
+- **Discrepancy Detection** — JSON-structured narrative-vs-financial mismatch identification
+- **Red Flag Detection** — Critical issues that would block funding
+- **Overall Scoring** — Overall, narrative, financial, consistency, risk, fundability scores
+
+### 🎤 Dynamic Pitch Deck Orchestrator
+
+- **5 Built-In Templates** — Seed Round (12 slides), Series A (14 slides), Debt Financing (10 slides), Partner Pitch (8 slides), Internal Review (6 slides)
+- **AI Content Generation** — Auto-generate slide content from plan + forecast data
+- **Dynamic Variables** — Auto-synced variables from plan/forecast/KPI data (`{{burn_rate}}`, `{{mrr}}`)
+- **Funder Questions** — AI-generated 8-12 questions with suggested answers
+- **Deck Analysis** — Scores for clarity, financial rigor, market proof, team strength, ask clarity
+
+### 🔬 Bank-Grade Research System
+
+- **50+ Verified Sources** — Government, industry reports, academic, financial institutions, news, databases
+- **Citation System** — Confidence scores, reliability ratings, and last-updated tracking per source
+- **Industry Benchmarks** — Pre-loaded with 25th/50th/75th percentiles and sample sizes
+- **Multi-Geography** — Global, MY, SG, ID, US geography-specific data
+
+### 📊 Plan vs Actuals Tracking
+
+- **QuickBooks/Xero Integration** — OAuth-connected sync with configurable frequency
+- **Variance Analysis** — Auto-compute forecast vs actual variance per metric per period
+- **Alert Levels** — On Track, Warning, Critical, Exceeded thresholds
+- **AI Variance Explanation** — LLM-generated analysis of why variances occurred
+
+### 📤 6-Format Export Engine
+
+| PDF | DOCX | PPTX | XLSX | CSV | Markdown |
+|-----|------|------|------|-----|----------|
+| HTML+CSS | Office HTML | Slide HTML | SpreadsheetML | Standard CSV | Pass-through |
+
+### 🌐 Browser Automation
+
+- **Dual Strategy** — Tries agent-browser CLI first, falls back to AI simulation
+- **8 Actions** — Navigate, click, type, screenshot, extract, fill, scroll, wait
+- **Session Management** — Full session lifecycle with status tracking and snapshot storage
+
+### 🔐 Security & Auth
+
+- **4 Auth Strategies** — Cookie session, server cookies, URL params, bearer token
+- **RBAC** — 5-tier role hierarchy (Owner > Admin > Manager > Accountant > Viewer)
+- **Rate Limiting** — Per-endpoint configurable limits with IETF standard headers
+- **Audit Logging** — Complete audit trail for all API actions
+- **API Keys** — SHA-256 hashed with permissions and expiration
+
+### ⚡ UX Features
+
+- **Command Palette** — `Cmd+K` / `Ctrl+K` quick search, navigation, and actions
 - **Dark/Light Theme** — Full theme support with system preference detection
 - **Responsive Design** — Mobile-first layout with collapsible sidebar
+- **Framer Motion** — Smooth page transitions and micro-interactions
 
 ---
 
 ## Tech Stack
 
 ### Frontend
+
 | Technology | Version | Purpose |
 |---|---|---|
 | **Next.js** | 16 | React framework with App Router |
 | **React** | 19 | UI library |
 | **TypeScript** | 5 | Type safety |
 | **Tailwind CSS** | 4 | Utility-first CSS |
-| **shadcn/ui** | New York style | Component library (46 components) |
+| **shadcn/ui** | New York | Component library (46+ components) |
 | **Recharts** | 2 | Data visualization & charts |
-| **Framer Motion** | 12 | Animations |
+| **Framer Motion** | 12 | Animations & transitions |
 | **Zustand** | 5 | Client state management |
+| **TanStack Table** | 8 | Headless data tables |
+| **React Hook Form** | 7 | Form management |
 | **Lucide React** | — | Icon library |
+| **cmdk** | 1 | Command palette |
 
 ### Backend
+
 | Technology | Version | Purpose |
 |---|---|---|
 | **Next.js API Routes** | 16 | REST API endpoints |
 | **Prisma** | 6 | ORM & database management |
-| **SQLite** | — | Embedded database |
+| **SQLite** | — | Embedded database (dev); PostgreSQL-ready (prod) |
 | **z-ai-web-dev-sdk** | 0.0.17 | AI/LLM integration |
 | **Zod** | 4 | Schema validation |
 | **agent-browser** | — | Browser automation runtime |
+| **dnd-kit** | 6 | Drag and drop |
+| **sharp** | 0.34 | Image processing |
 
 ### Backend Libraries (Custom)
+
 | Module | Purpose |
 |---|---|
-| `lib/middleware` | Auth, RBAC, rate limiting, audit logging, API handler wrapper |
-| `lib/agents` | Agent orchestrator, DAG pipeline engine |
-| `lib/tools` | Tool registry, executor, approval system |
-| `lib/memory` | Memory engine with relevance ranking, compression, cleanup |
-| `lib/browser` | Browser automation runtime, session management |
+| `lib/middleware` | Auth (4 strategies), RBAC (5 roles), rate limiting, audit logging, API handler wrapper |
+| `lib/agents` | Agent orchestrator (8 agents), DAG pipeline engine, session management |
+| `lib/tools` | Tool registry (10 tools), executor with tracing, approval system |
+| `lib/memory` | Memory engine with relevance ranking, LLM compression, aging, TTL cleanup |
+| `lib/browser` | Browser automation runtime, dual strategy, session management |
 | `lib/finance` | SaaS metrics, burn rate, scenario analysis, KPI health, investor metrics |
 | `lib/exports` | Export engine (PDF/DOCX/PPTX/XLSX/CSV/MD) |
-| `lib/workflows` | DAG workflow engine with step-level execution |
-| `lib/observability` | Execution tracking, distributed tracing, token usage |
+| `lib/workflows` | DAG workflow engine with 6 step types and template resolution |
+| `lib/observability` | Execution tracking, distributed tracing, token usage, cost estimation |
+| `lib/idea-validation` | 6-category validation engine with risk assessment and benchmarks |
+| `lib/plan-review` | Multi-agent review: narrative, financial, cross-check analysis |
+| `lib/pitch-deck` | 5 template orchestrator with dynamic variables and AI generation |
+| `lib/research` | 50+ verified sources, citation system, industry benchmarks |
+| `lib/actuals` | Plan vs actuals tracking, variance analysis, QuickBooks/Xero integration |
 
 ### Development
+
 | Technology | Purpose |
 |---|---|
 | **Bun** | JavaScript runtime & package manager |
@@ -172,209 +236,11 @@ This IS:
 
 ---
 
-## Architecture
-
-```
-┌──────────────────────────────────────────────────────────────────────────┐
-│                           Caddy Gateway                                  │
-│                        (Reverse Proxy :81)                                │
-│                     XTransformPort routing                                │
-└────────────────────────────┬─────────────────────────────────────────────┘
-                             │
-                             ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│                       Next.js 16 Application                             │
-│                           (Port 3000)                                    │
-│                                                                          │
-│  ┌──────────────┐  ┌──────────────────┐  ┌───────────────────────────┐ │
-│  │ React Client  │  │   API Routes     │  │    Backend Libraries      │ │
-│  │ (App Shell)   │──│   (REST API)     │──│                           │ │
-│  │               │  │                  │  │  ┌─────────────────────┐  │ │
-│  │ • Zustand     │  │  /api/auth/*     │  │  │  Middleware Layer    │  │ │
-│  │ • shadcn/ui   │  │  /api/chat/*     │  │  │  • Auth (RBAC)      │  │ │
-│  │ • Recharts    │  │  /api/plans/*    │  │  │  • Rate Limiting    │  │ │
-│  │ • Framer      │  │  /api/forecast   │  │  │  • Audit Logging    │  │ │
-│  │   Motion      │  │  /api/agents/*   │  │  │  • API Handler      │  │ │
-│  │               │  │  /api/reports/*  │  │  └─────────────────────┘  │ │
-│  │ 11 Pages:     │  │  /api/workflow   │  │  ┌─────────────────────┐  │ │
-│  │ Dashboard     │  │  /api/kpis/*     │  │  │  Agent Runtime      │  │ │
-│  │ Plans         │  │  /api/settings   │  │  │  • Orchestrator     │  │ │
-│  │ Forecasting   │  │  /api/exports/*  │  │  │  • Pipeline (DAG)   │  │ │
-│  │ Agents        │  │  /api/browser    │  │  │  • Tool Executor    │  │ │
-│  │ Copilot       │  │  /api/pipelines  │  │  └─────────────────────┘  │ │
-│  │ Reports       │  │  /api/tools/*    │  │  ┌─────────────────────┐  │ │
-│  │ Workflows     │  │  /api/memories   │  │  │  Memory Engine      │  │ │
-│  │ Observability │  │  /api/finance    │  │  │  • Store/Retrieve   │  │ │
-│  │ Browser       │  │  /api/observ.    │  │  │  • Ranking/Compress │  │ │
-│  │ Settings      │  │  /api/notif.     │  │  └─────────────────────┘  │ │
-│  └──────────────┘  └────────┬─────────┘  └────────────┬──────────────┘ │
-│                             │                           │               │
-│                             ▼                           ▼               │
-│                     ┌──────────────┐           ┌──────────────┐         │
-│                     │ Prisma ORM   │           │ z-ai-web-dev │         │
-│                     │ (SQLite)     │           │    SDK       │         │
-│                     │ 38 Models    │           │ (LLM/AI)     │         │
-│                     └──────┬───────┘           └──────────────┘         │
-│                            │                                            │
-│                            ▼                                            │
-│                     ┌──────────────┐                                    │
-│                     │  custom.db   │                                    │
-│                     │  (SQLite)    │                                    │
-│                     └──────────────┘                                    │
-└──────────────────────────────────────────────────────────────────────────┘
-```
-
-### Request Lifecycle
-
-```
-User Action
-    │
-    ▼
-Zustand Store (currentPage)
-    │
-    ▼
-API Request
-    │
-    ├── Rate Limiting ──── X-RateLimit-* headers
-    ├── Authentication ─── session_user cookie → AuthUser
-    ├── RBAC Check ─────── role + resource + action → allow/deny
-    ├── Audit Log ──────── record action attempt
-    │
-    ▼
-Handler Execution
-    │
-    ├── Agent Orchestrator ── memory injection → LLM → tool parsing → execution
-    ├── Pipeline Engine ───── DAG resolve → level-by-level → parallel execution
-    ├── Tool Executor ─────── schema validation → permission check → execute → trace
-    ├── Workflow Engine ───── DAG resolve → step execution → template resolution
-    ├── Finance Engine ────── KPI queries → calculations → projections
-    │
-    ├── Observability ──── track event + token usage
-    ├── Audit Log ──────── record outcome
-    │
-    ▼
-JSON Response → UI Update
-```
-
----
-
-## Project Structure
-
-```
-gangniaga-ai/
-├── prisma/
-│   └── schema.prisma                    # Database schema (38 models)
-├── db/
-│   └── custom.db                        # SQLite database file
-├── src/
-│   ├── app/
-│   │   ├── layout.tsx                   # Root layout (ThemeProvider + Toaster)
-│   │   ├── page.tsx                     # Main app shell + client-side routing (11 pages)
-│   │   ├── globals.css                  # Tailwind + custom CSS variables
-│   │   └── api/                         # REST API routes
-│   │       ├── auth/
-│   │       │   ├── login/route.ts       # POST - Login with rate limiting + audit
-│   │       │   ├── register/route.ts    # POST - Register with rate limiting + audit
-│   │       │   └── session/route.ts     # GET - Session check
-│   │       ├── chat/
-│   │       │   ├── route.ts             # POST - Chat with agent orchestrator + token tracking
-│   │       │   └── [id]/route.ts        # GET/DELETE - Chat session
-│   │       ├── plans/
-│   │       │   ├── route.ts             # GET/POST - Plans with RBAC + audit
-│   │       │   └── [id]/route.ts        # PATCH/DELETE - Plan update
-│   │       ├── forecasts/route.ts       # GET/POST - Forecasts with RBAC + audit
-│   │       ├── agents/route.ts          # GET/POST - Agent tasks via orchestrator
-│   │       ├── reports/route.ts         # GET/POST - Reports with RBAC + audit
-│   │       ├── workflows/
-│   │       │   ├── route.ts             # GET/POST - Workflows
-│   │       │   └── [id]/route.ts        # PATCH/DELETE - Workflow update
-│   │       ├── pipelines/
-│   │       │   ├── route.ts             # GET/POST - DAG pipelines
-│   │       │   └── [id]/route.ts        # GET/POST/PATCH/DELETE - Pipeline CRUD + execute
-│   │       ├── tools/
-│   │       │   ├── execute/route.ts     # GET/POST - Tool registry + execution
-│   │       │   └── approvals/route.ts   # GET/POST - Tool approval system
-│   │       ├── memories/route.ts        # GET/POST - Memory store/retrieve/compress
-│   │       ├── browser/route.ts         # GET/POST - Browser automation
-│   │       ├── exports/
-│   │       │   ├── route.ts             # GET/POST - Export jobs
-│   │       │   └── [id]/route.ts        # GET - Export download
-│   │       ├── finance/route.ts         # GET/POST - Financial intelligence
-│   │       ├── observability/route.ts   # GET/POST - Observability dashboard
-│   │       ├── kpis/route.ts            # GET/POST - KPI metrics
-│   │       ├── notifications/route.ts   # GET/POST/PATCH - Notifications
-│   │       └── settings/route.ts        # GET/PATCH - Organization settings
-│   ├── components/
-│   │   ├── auth/auth-page.tsx           # Login/Register tabs
-│   │   ├── layout/
-│   │   │   ├── app-header.tsx           # Top navigation bar
-│   │   │   └── app-sidebar.tsx          # Collapsible sidebar (11 nav items + DevOps group)
-│   │   ├── dashboard/dashboard-page.tsx # KPI cards, charts, AI insights
-│   │   ├── plans/plans-page.tsx         # Business plan builder + editor
-│   │   ├── forecasting/forecasting-page.tsx # Financial modeling + statements
-│   │   ├── agents/agents-page.tsx       # 4 tabs: Agents, Pipelines, Tools, Memory
-│   │   ├── copilot/copilot-page.tsx     # AI chat interface
-│   │   ├── reports/reports-page.tsx     # Report generator + preview
-│   │   ├── workflows/workflows-page.tsx # Workflow builder + templates
-│   │   ├── observability/observability-page.tsx # Execution monitoring dashboard
-│   │   ├── browser/browser-page.tsx     # Browser automation console
-│   │   ├── settings/settings-page.tsx   # 8-tab settings panel
-│   │   ├── providers/theme-provider.tsx # Dark/light theme
-│   │   └── ui/                          # 46 shadcn/ui components
-│   ├── lib/
-│   │   ├── db.ts                        # Prisma client singleton
-│   │   ├── utils.ts                     # cn() utility
-│   │   ├── middleware/                  # Security & API infrastructure
-│   │   │   ├── auth.ts                  # Auth middleware (getAuthUser, requireAuth)
-│   │   │   ├── rbac.ts                  # RBAC (role hierarchy, resource-action matrix)
-│   │   │   ├── rate-limit.ts            # Rate limiting (per-endpoint, IETF headers)
-│   │   │   ├── audit.ts                 # Audit logging (logAudit, logAction, logDenied)
-│   │   │   ├── with-api-handler.ts      # API route wrapper (auth+RBAC+rate+audit)
-│   │   │   └── index.ts                 # Barrel exports
-│   │   ├── agents/                      # Agent runtime
-│   │   │   ├── orchestrator.ts          # Agent definitions + executeAgentTask
-│   │   │   ├── pipeline.ts              # DAG pipeline engine (create, execute, list)
-│   │   │   └── index.ts                 # Barrel exports
-│   │   ├── tools/                       # Tool execution runtime
-│   │   │   ├── registry.ts              # 10 tool definitions with schemas
-│   │   │   ├── executor.ts              # Tool executor + tracing + approval
-│   │   │   └── index.ts                 # Barrel exports
-│   │   ├── memory/                      # Memory architecture
-│   │   │   ├── engine.ts                # Store, retrieve, rank, compress, cleanup
-│   │   │   └── index.ts                 # Barrel exports
-│   │   ├── browser/                     # Browser automation
-│   │   │   ├── runtime.ts               # Session mgmt, execute actions, screenshots
-│   │   │   └── index.ts                 # Barrel exports
-│   │   ├── finance/                     # Financial intelligence engine
-│   │   │   ├── engine.ts                # SaaS metrics, burn rate, scenarios, health, investor
-│   │   │   └── index.ts                 # Barrel exports
-│   │   ├── exports/                     # Export system
-│   │   │   ├── engine.ts                # PDF/DOCX/PPTX/XLSX/CSV/MD generation
-│   │   │   └── index.ts                 # Barrel exports
-│   │   ├── workflows/                   # Workflow engine
-│   │   │   ├── engine.ts                # DAG execution, step runners, template resolution
-│   │   │   └── index.ts                 # Barrel exports
-│   │   ├── observability/               # Observability system
-│   │   │   ├── tracker.ts               # Events, traces, token usage, dashboard data
-│   │   │   └── index.ts                 # Barrel exports
-│   │   └── stores/
-│   │       ├── app-store.ts             # Navigation + UI state (11 pages)
-│   │       └── auth-store.ts            # Authentication state
-│   └── hooks/
-│       ├── use-mobile.ts                # Mobile breakpoint hook
-│       └── use-toast.ts                 # Toast notifications
-├── Caddyfile                            # Reverse proxy configuration
-├── package.json                         # Dependencies & scripts
-└── worklog.md                           # Development worklog
-```
-
----
-
 ## Getting Started
 
 ### Prerequisites
 
-- **Bun** >= 1.0 (recommended runtime)
+- **Bun** >= 1.0 (recommended runtime) — [Install Bun](https://bun.sh)
 - **Node.js** >= 18 (alternative runtime)
 
 ### Installation
@@ -389,6 +255,7 @@ bun install
 
 # Set up environment variables
 cp .env.example .env
+# Edit .env with your configuration (see Environment Variables section)
 
 # Initialize the database
 bun run db:push
@@ -400,9 +267,172 @@ bun run db:generate
 bun run dev
 ```
 
-The application will be available at `http://localhost:3000`.
+The application will be available at **http://localhost:3000**.
 
-### Available Scripts
+### First Run
+
+1. Register a new account on the login page
+2. Create your organization (name, industry, currency)
+3. Start with the **Dashboard** to see your command center
+4. Try the **Idea Canvas** to validate a business idea
+5. Open the **Command Palette** with `Cmd+K` / `Ctrl+K`
+
+---
+
+## Project Structure
+
+```
+gangniaga-ai/
+├── prisma/
+│   └── schema.prisma                          # Database schema (38 models)
+├── db/
+│   └── custom.db                              # SQLite database file
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx                         # Root layout (ThemeProvider + Toaster)
+│   │   ├── page.tsx                           # Main app shell + client-side routing (15 pages)
+│   │   ├── globals.css                        # Tailwind + custom CSS variables
+│   │   └── api/                               # REST API routes
+│   │       ├── auth/
+│   │       │   ├── login/route.ts             # POST - Login with rate limiting + audit
+│   │       │   ├── register/route.ts          # POST - Register with rate limiting + audit
+│   │       │   └── session/route.ts           # GET - Session check
+│   │       ├── chat/
+│   │       │   ├── route.ts                   # POST - Chat with agent orchestrator + token tracking
+│   │       │   └── [id]/route.ts              # GET/DELETE - Chat session
+│   │       ├── plans/
+│   │       │   ├── route.ts                   # GET/POST - Plans with RBAC + audit
+│   │       │   └── [id]/route.ts              # PATCH/DELETE - Plan update
+│   │       ├── forecasts/route.ts             # GET/POST - Forecasts with RBAC + audit
+│   │       ├── agents/route.ts                # GET/POST - Agent tasks via orchestrator
+│   │       ├── reports/route.ts               # GET/POST - Reports with RBAC + audit
+│   │       ├── workflows/
+│   │       │   ├── route.ts                   # GET/POST - Workflows
+│   │       │   └── [id]/route.ts              # PATCH/DELETE - Workflow update
+│   │       ├── pipelines/
+│   │       │   ├── route.ts                   # GET/POST - DAG pipelines
+│   │       │   └── [id]/route.ts              # GET/POST/PATCH/DELETE - Pipeline CRUD + execute
+│   │       ├── tools/
+│   │       │   ├── execute/route.ts           # GET/POST - Tool registry + execution
+│   │       │   └── approvals/route.ts         # GET/POST - Tool approval system
+│   │       ├── memories/route.ts              # GET/POST - Memory store/retrieve/compress
+│   │       ├── browser/route.ts               # GET/POST - Browser automation
+│   │       ├── exports/
+│   │       │   ├── route.ts                   # GET/POST - Export jobs
+│   │       │   └── [id]/route.ts              # GET - Export download
+│   │       ├── finance/route.ts               # GET/POST - Financial intelligence
+│   │       ├── observability/route.ts         # GET/POST - Observability dashboard
+│   │       ├── kpis/route.ts                  # GET/POST - KPI metrics
+│   │       ├── notifications/route.ts         # GET/POST/PATCH - Notifications
+│   │       ├── settings/route.ts              # GET/PATCH - Organization settings
+│   │       ├── research/
+│   │       │   ├── route.ts                   # GET/POST - Research sources + AI research
+│   │       │   └── [id]/route.ts              # GET - Source detail
+│   │       ├── idea-canvases/
+│   │       │   ├── route.ts                   # GET/POST - Idea canvases + validation
+│   │       │   └── [id]/route.ts              # PATCH/DELETE - Canvas update
+│   │       ├── plan-reviews/
+│   │       │   ├── route.ts                   # GET/POST - Plan reviews
+│   │       │   └── [id]/route.ts              # GET/PATCH - Review detail
+│   │       ├── pitch-decks/
+│   │       │   ├── route.ts                   # GET/POST - Pitch decks
+│   │       │   └── [id]/route.ts              # GET/PATCH/DELETE - Deck detail
+│   │       └── actuals/
+│   │           ├── route.ts                   # GET/POST - Plan vs actuals
+│   │           └── [id]/route.ts              # PATCH/DELETE - Actual entry
+│   ├── components/
+│   │   ├── auth/auth-page.tsx                 # Login/Register tabs
+│   │   ├── layout/
+│   │   │   ├── app-header.tsx                 # Top navigation bar
+│   │   │   ├── app-sidebar.tsx                # Collapsible sidebar (15 nav items, 5 groups)
+│   │   │   └── command-palette.tsx            # Cmd+K command palette (navigation + actions)
+│   │   ├── dashboard/dashboard-page.tsx       # KPI cards, charts, AI insights, health score
+│   │   ├── idea-canvas/idea-canvas-page.tsx   # Idea validation with 6-category scoring
+│   │   ├── plans/plans-page.tsx               # Business plan builder + editor (8 sections)
+│   │   ├── forecasting/forecasting-page.tsx   # Financial modeling + statements + scenarios
+│   │   ├── actuals/actuals-page.tsx           # Plan vs actuals + variance + alerts
+│   │   ├── plan-review/plan-review-page.tsx   # Multi-agent review (narrative/financial/cross-check)
+│   │   ├── pitch-deck/pitch-deck-page.tsx     # 5 templates, AI generation, funder questions
+│   │   ├── agents/agents-page.tsx             # 4 tabs: Agents, Pipelines, Tools, Memory
+│   │   ├── copilot/copilot-page.tsx           # AI chat interface with agent selection
+│   │   ├── research/research-page.tsx         # 50+ sources, citations, benchmarks
+│   │   ├── reports/reports-page.tsx           # 5 report types + export
+│   │   ├── workflows/workflows-page.tsx       # DAG workflow builder + templates
+│   │   ├── observability/observability-page.tsx # Execution monitoring + tracing
+│   │   ├── browser/browser-page.tsx           # Browser automation console
+│   │   ├── settings/settings-page.tsx         # Multi-tab settings panel
+│   │   ├── providers/theme-provider.tsx       # Dark/light theme with system detection
+│   │   └── ui/                                # 46+ shadcn/ui components
+│   ├── lib/
+│   │   ├── db.ts                              # Prisma client singleton
+│   │   ├── utils.ts                           # cn() utility
+│   │   ├── middleware/                        # Security & API infrastructure
+│   │   │   ├── auth.ts                        # Auth middleware (4 strategies: cookie, server, URL, bearer)
+│   │   │   ├── rbac.ts                        # RBAC (5-role hierarchy, resource-action matrix)
+│   │   │   ├── rate-limit.ts                  # Rate limiting (per-endpoint, IETF headers)
+│   │   │   ├── audit.ts                       # Audit logging (logAudit, logAction, logDenied)
+│   │   │   ├── with-api-handler.ts            # API route wrapper (auth+RBAC+rate+audit)
+│   │   │   └── index.ts                       # Barrel exports
+│   │   ├── agents/                            # Agent runtime
+│   │   │   ├── orchestrator.ts                # 8 agent definitions + executeAgentTask
+│   │   │   ├── pipeline.ts                    # DAG pipeline engine (Kahn's algorithm)
+│   │   │   └── index.ts                       # Barrel exports
+│   │   ├── tools/                             # Tool execution runtime
+│   │   │   ├── registry.ts                    # 10 tool definitions with JSON schemas
+│   │   │   ├── executor.ts                    # Tool executor + tracing + approval
+│   │   │   └── index.ts                       # Barrel exports
+│   │   ├── memory/                            # Memory architecture
+│   │   │   ├── engine.ts                      # Store, retrieve, rank, compress, cleanup
+│   │   │   └── index.ts                       # Barrel exports
+│   │   ├── browser/                           # Browser automation
+│   │   │   ├── runtime.ts                     # Dual strategy, session mgmt, actions, snapshots
+│   │   │   └── index.ts                       # Barrel exports
+│   │   ├── finance/                           # Financial intelligence engine
+│   │   │   ├── engine.ts                      # SaaS metrics, burn rate, scenarios, health, investor
+│   │   │   └── index.ts                       # Barrel exports
+│   │   ├── exports/                           # Export system
+│   │   │   ├── engine.ts                      # PDF/DOCX/PPTX/XLSX/CSV/MD generation
+│   │   │   └── index.ts                       # Barrel exports
+│   │   ├── workflows/                         # Workflow engine
+│   │   │   ├── engine.ts                      # DAG execution, step runners, template resolution
+│   │   │   └── index.ts                       # Barrel exports
+│   │   ├── observability/                     # Observability system
+│   │   │   ├── tracker.ts                     # Events, traces, token usage, dashboard data
+│   │   │   └── index.ts                       # Barrel exports
+│   │   ├── idea-validation/                   # Idea validation engine
+│   │   │   ├── engine.ts                      # 6-category validation, risk, benchmarks
+│   │   │   └── index.ts                       # Barrel exports
+│   │   ├── plan-review/                       # Plan review engine
+│   │   │   ├── engine.ts                      # Narrative, financial, cross-check agents
+│   │   │   └── index.ts                       # Barrel exports
+│   │   ├── pitch-deck/                        # Pitch deck orchestrator
+│   │   │   ├── engine.ts                      # 5 templates, dynamic vars, AI generation
+│   │   │   └── index.ts                       # Barrel exports
+│   │   ├── research/                          # Research engine
+│   │   │   ├── engine.ts                      # 50+ sources, citations, benchmarks
+│   │   │   └── index.ts                       # Barrel exports
+│   │   ├── actuals/                           # Plan vs actuals engine
+│   │   │   ├── engine.ts                      # Variance analysis, alerts, QB/Xero integration
+│   │   │   └── index.ts                       # Barrel exports
+│   │   └── stores/
+│   │       ├── app-store.ts                   # Navigation (15 pages) + UI state (Zustand)
+│   │       └── auth-store.ts                  # Authentication state (Zustand)
+│   └── hooks/
+│       ├── use-mobile.ts                      # Mobile breakpoint hook
+│       ├── use-api.ts                         # API request hook
+│       └── use-toast.ts                       # Toast notifications
+├── Caddyfile                                  # Reverse proxy configuration
+├── package.json                               # Dependencies & scripts
+├── ARCHITECTURE.md                            # Architecture documentation
+├── API.md                                     # API reference documentation
+├── DATABASE.md                                # Database schema documentation
+├── PRD.md                                     # Product requirements document
+└── worklog.md                                 # Development worklog
+```
+
+---
+
+## Available Scripts
 
 | Command | Description |
 |---|---|
@@ -417,43 +447,45 @@ The application will be available at `http://localhost:3000`.
 
 ---
 
-## Core Modules
+## Environment Variables
 
-### 1. Dashboard
-Central command center with real-time KPIs, AI insights, financial health indicators, and agent monitoring.
+Create a `.env` file in the project root based on `.env.example`:
 
-### 2. Business Plan Builder
-AI-powered 8-section business plan creation with auto-generate, rewrite, status workflow (Draft → Review → Approved → Archived), and export.
+| Variable | Required | Description |
+|---|---|---|
+| `DATABASE_URL` | Yes | Prisma database connection string (default: `file:./db/custom.db`) |
+| `Z_AI_API_KEY` | Yes | API key for z-ai-web-dev-sdk (LLM integration) |
+| `NEXTAUTH_SECRET` | Yes | Secret for NextAuth session encryption |
+| `NEXTAUTH_URL` | Yes | Base URL of the application (e.g., `http://localhost:3000`) |
+| `NEXT_PUBLIC_APP_URL` | No | Public URL for client-side references |
+| `QUICKBOOKS_CLIENT_ID` | No | QuickBooks Online OAuth client ID |
+| `QUICKBOOKS_CLIENT_SECRET` | No | QuickBooks Online OAuth client secret |
+| `XERO_CLIENT_ID` | No | Xero OAuth client ID |
+| `XERO_CLIENT_SECRET` | No | Xero OAuth client secret |
 
-### 3. Financial Forecasting Engine
-Multi-scenario modeling with revenue/expense tracking, auto-generated P&L/Balance Sheet/Cash Flow, SaaS metrics, and AI CFO insights.
+---
 
-### 4. KPI Intelligence
-Real-time monitoring across 5 categories (Revenue, Growth, SaaS, Cash, Customer) with target tracking and AI-computed insights.
+## Module Overview
 
-### 5. AI Agent System (4 Tabs)
-- **Agents Tab** — 8 agent cards with available tools, task assignment, agent chat, orchestration flow
-- **Pipelines Tab** — DAG pipeline creation, execution, status monitoring, visual DAG diagram
-- **Tools Tab** — 10 registered tools with schema-based execution, approval workflow, history
-- **Memory Tab** — Memory entries with search, filtering, stats, compress/cleanup actions
+The application has **15 pages** organized into **5 navigation groups**, all rendered client-side via Zustand state management:
 
-### 6. AI Copilot
-Chat interface with 5 agent types, history persistence, markdown rendering, suggestion cards.
-
-### 7. Report Generator
-5 report types with AI generation, quick templates, and real export (PDF/DOCX/PPTX/XLSX/CSV).
-
-### 8. Workflow Automation
-DAG workflow builder with 6 step types, condition branching, template resolution, execution history, and pre-built templates.
-
-### 9. Observability Dashboard
-Execution monitoring with event breakdown charts, token usage analytics, error tracking, slow operations, distributed tracing.
-
-### 10. Browser Automation Console
-Session management, action toolbar (navigate/click/type/screenshot/extract), snapshot gallery, quick workflows.
-
-### 11. Settings
-8-section settings panel: Profile, Organization, Team, Billing, Integrations, Notifications, Security, Appearance.
+| # | Page | Group | Route ID | Description |
+|---|---|---|---|---|
+| 1 | **Dashboard** | Overview | `dashboard` | Central command center with KPI cards, health score, revenue charts, activity feed, and agent status |
+| 2 | **Idea Canvas** | Planning | `idea-canvas` | 10-field canvas + 6-category AI validation with scoring, risk assessment, and benchmarks |
+| 3 | **Business Plans** | Planning | `plans` | 8-section AI plan builder with status workflow, section generation, and 6-format export |
+| 4 | **Forecasting** | Planning | `forecasting` | Multi-scenario financial modeling with P&L, Balance Sheet, Cash Flow, and SaaS metrics |
+| 5 | **Plan vs Actuals** | Planning | `actuals` | QuickBooks/Xero integration, variance analysis, alert levels, and AI explanations |
+| 6 | **Plan Review** | Planning | `plan-review` | Multi-agent review (Narrative, Financial, Cross-Check) with lender/investor/auditor personas |
+| 7 | **Pitch Decks** | Planning | `pitch-deck` | 5 template orchestrator with AI generation, dynamic variables, and funder questions |
+| 8 | **AI Agents** | Intelligence | `agents` | 4-tab interface: Agents (8 types), Pipelines (DAG), Tools (10 registered), Memory (7 categories) |
+| 9 | **AI Copilot** | Intelligence | `copilot` | Chat interface with agent selection, tool execution display, and memory-aware responses |
+| 10 | **Research** | Intelligence | `research` | 50+ verified sources with citations, confidence scores, and industry benchmarks |
+| 11 | **Reports** | Operations | `reports` | 5 report types (Investor, Board, KPI, Financial, Market) with AI generation and export |
+| 12 | **Workflows** | Operations | `workflows` | DAG workflow builder with 6 step types, condition branching, and execution tracking |
+| 13 | **Observability** | DevOps | `observability` | Execution monitoring, distributed tracing, token usage, error tracking, slow operations |
+| 14 | **Browser** | DevOps | `browser` | Browser automation console with session management, action toolbar, and snapshot gallery |
+| 15 | **Settings** | System | `settings` | Organization, team, integrations, API keys, billing, notifications, security, appearance |
 
 ---
 
@@ -463,33 +495,37 @@ Session management, action toolbar (navigate/click/type/screenshot/extract), sna
 
 | Agent | Role | Allowed Tools | Max Concurrent |
 |---|---|---|---|
-| **CFO Agent** | Financial strategy, cash flow, runway | forecast_calculate, kpi_update, analytics_query, export_generate | 3 |
-| **CEO Agent** | Strategic vision, positioning | web_search, analytics_query, crm_lookup | 2 |
-| **Research Agent** | Market intelligence, competitors | web_search, browser_navigate, analytics_query | 5 |
-| **Growth Agent** | Customer acquisition, retention | web_search, analytics_query, crm_lookup, notification_send | 3 |
-| **Operations Agent** | Process optimization, efficiency | analytics_query, kpi_update, notification_send | 3 |
-| **Fundraising Agent** | Investment strategy, pitch prep | web_search, analytics_query, export_generate, forecast_calculate | 2 |
-| **Browser Agent** | Web automation, data extraction | browser_navigate, web_search | 2 |
-| **Reporting Agent** | Report generation, data synthesis | analytics_query, export_generate, kpi_update, forecast_calculate | 3 |
+| **CFO Agent** | Financial strategy, cash flow, runway analysis | `forecast_calculate`, `kpi_update`, `analytics_query`, `export_generate` | 3 |
+| **CEO Agent** | Strategic vision, market positioning, growth strategy | `web_search`, `analytics_query`, `crm_lookup` | 2 |
+| **Research Agent** | Market intelligence, competitor analysis, trends | `web_search`, `browser_navigate`, `analytics_query` | 5 |
+| **Growth Agent** | Customer acquisition, retention, expansion | `web_search`, `analytics_query`, `crm_lookup`, `notification_send` | 3 |
+| **Operations Agent** | Process optimization, resource allocation | `analytics_query`, `kpi_update`, `notification_send` | 3 |
+| **Fundraising Agent** | Investment strategy, pitch preparation, investor relations | `web_search`, `analytics_query`, `export_generate`, `forecast_calculate` | 2 |
+| **Browser Agent** | Web automation, data extraction, navigation | `browser_navigate`, `web_search` | 2 |
+| **Reporting Agent** | Report generation, data synthesis, stakeholder communications | `analytics_query`, `export_generate`, `kpi_update`, `forecast_calculate` | 3 |
 
 ### Agent Execution Lifecycle
 
+```
+Session Creation → Memory Injection → Task Creation → LLM Call (z-ai-web-dev-sdk)
+→ Tool Call Parsing (3 pattern matchers) → Tool Execution → Result Update
+→ Memory Save → Audit Log → Observability Tracking
+```
+
 1. **Session Creation** — Get or create AgentSession
 2. **Memory Injection** — Build system prompt with top-10 relevant memories from Memory Engine
-3. **Task Creation** — Create AgentTask (status: running)
+3. **Task Creation** — Create AgentTask record (status: `running`)
 4. **LLM Call** — z-ai-web-dev-sdk with agent-specific system prompt
-5. **Tool Call Parsing** — Detect tool requests in LLM output (3 pattern matchers)
-6. **Tool Execution** — Execute requested tools via Tool Executor
-7. **Result Update** — Update AgentTask with output (status: completed)
+5. **Tool Call Parsing** — Detect tool requests in LLM output (code block, bracket, XML patterns)
+6. **Tool Execution** — Execute requested tools via Tool Executor with permission checks
+7. **Result Update** — Update AgentTask with output (status: `completed` / `failed`)
 8. **Memory Save** — Store relevant insights in Memory Engine
 9. **Audit Log** — Record execution in AuditLog
 10. **Observability** — Track event and token usage
 
----
+### DAG Pipeline Orchestration
 
-## Agent Orchestration (DAG Pipelines)
-
-Multi-agent pipeline system with topological sort for DAG execution:
+Multi-agent pipelines with topological sort for execution ordering:
 
 ```
 ┌─────────────┐     ┌─────────────┐
@@ -503,23 +539,15 @@ Multi-agent pipeline system with topological sort for DAG execution:
                     └─────────────┘     └─────────────┘
 ```
 
-**Features:**
 - **Kahn's Algorithm** — Topological sort for execution order
 - **Parallel Execution** — Steps within a level run in parallel via `Promise.allSettled`
 - **Template Resolution** — `{{stepId.field}}` and `{{stepIndex.output}}` patterns
 - **Pipeline CRUD** — Create, read, update, delete, execute
 - **Run Tracking** — AgentPipelineRun with PipelineStepRun per step
-- **Error Handling** — Step-level failure tracking with early stop
 
-**API:** `GET/POST /api/pipelines`, `GET/POST/PATCH/DELETE /api/pipelines/[id]`
+### Tool Registry
 
----
-
-## Tool Execution Runtime
-
-### 10 Registered Tools
-
-| Tool | Category | Requires Approval | Rate Limited | Sandboxed |
+| Tool | Category | Approval Required | Rate Limited | Sandboxed |
 |---|---|---|---|---|
 | `web_search` | Analytics | No | Yes (10/min) | No |
 | `forecast_calculate` | Finance | No | No | No |
@@ -532,27 +560,11 @@ Multi-agent pipeline system with topological sort for DAG execution:
 | `notification_send` | Communication | No | No | No |
 | `code_execute` | Analytics | **Yes** | No | Yes |
 
-### Execution Lifecycle
+### Memory Architecture
 
-1. **Schema Validation** — Validate input against tool's JSON schema
-2. **Permission Check** — Verify user role has access to tool's required permissions
-3. **Rate Limiting** — Check per-tool per-user rate limits
-4. **Approval Flow** — If `requiresApproval`, return 202 with approval ID
-5. **DB Trace** — Create ToolExecution record (pending → running → completed/failed)
-6. **Timeout Handling** — Enforce per-tool timeout (default 30s)
-7. **Execution** — Run tool-specific implementation
-8. **Token Tracking** — Record AI token usage for applicable tools
-9. **Audit Log** — Record execution outcome
+**7 Memory Categories:**
 
-**API:** `GET/POST /api/tools/execute`, `GET/POST /api/tools/approvals`
-
----
-
-## Memory Architecture
-
-### Memory Categories
-
-| Category | Purpose | Examples |
+| Category | Purpose | Example |
 |---|---|---|
 | `user_preference` | User-specific preferences | Communication style, preferred formats |
 | `workspace_context` | Organization context | Industry, team size, business model |
@@ -562,145 +574,220 @@ Multi-agent pipeline system with topological sort for DAG execution:
 | `market_intelligence` | Market data | Competitor info, market size, trends |
 | `financial_summary` | Financial summaries | Revenue patterns, expense categories |
 
-### Relevance Ranking Algorithm
+**Relevance Ranking Algorithm:**
 
 ```
 rankedScore = relevanceScore × (1 + accessCount × 0.1) × recencyBoost
 ```
 
-- **relevanceScore** — Initial score (0.0–1.0), decreases over time via `ageMemoryRelevance()`
-- **accessCount** — Incremented on each retrieval, boosts relevance (+0.01 per touch)
-- **recencyBoost** — Newer memories get a boost
-
-### Lifecycle Management
-
+- **relevanceScore** — Initial score (0.0–1.0), decreases over time via aging
+- **accessCount** — Incremented on each retrieval, boosts relevance
+- **recencyBoost** — Newer memories get a time-based boost
 - **Compression** — LLM-powered summarization of long, low-access memories
 - **Aging** — Time-decay for stale memories (>7 days, mitigated by access count)
 - **Cleanup** — TTL-based deletion via `expiresAt` field
-- **Search** — SQLite LIKE-based text search (simulating vector search)
-
-**API:** `GET/POST /api/memories`
 
 ---
 
-## Browser Automation
+## API Overview
 
-### Supported Actions
+### Authentication
 
-| Action | Description | Parameters |
+| Method | Endpoint | Description |
 |---|---|---|
-| `navigate` | Go to URL | url |
-| `click` | Click element | selector |
-| `type` | Type text | selector, value |
-| `screenshot` | Capture screenshot | selector (optional) |
-| `extract` | Extract page content | selector (optional) |
-| `fill` | Fill form field | selector, value |
-| `scroll` | Scroll page | — |
-| `wait` | Wait for element | selector, timeout |
+| `POST` | `/api/auth/register` | Register user + organization + seed KPIs |
+| `POST` | `/api/auth/login` | Login with audit trail (rate limited) |
+| `GET` | `/api/auth/session` | Check session status |
 
-### Architecture
+### Chat & Copilot
 
-- **Dual Strategy** — Tries agent-browser CLI first, falls back to AI simulation via z-ai-web-dev-sdk
-- **Session Management** — BrowserSession records with status tracking
-- **Snapshot Storage** — BrowserSnapshot records for screenshots and extracted content
-- **Audit Trail** — All browser actions logged
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/chat` | Send message via agent orchestrator + token tracking |
+| `GET` | `/api/chat/[id]` | Get chat session + messages |
+| `DELETE` | `/api/chat/[id]` | Delete chat session |
 
-**API:** `GET/POST /api/browser`
+### Business Plans
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/plans` | Create plan with AI generation |
+| `GET` | `/api/plans` | List plans |
+| `PATCH` | `/api/plans/[id]` | Update plan/sections |
+| `DELETE` | `/api/plans/[id]` | Delete plan |
+
+### Forecasting & Finance
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/forecasts` | Create forecast + statements |
+| `GET` | `/api/forecasts` | List forecasts with items |
+| `GET` | `/api/finance` | SaaS metrics, burn rate, scenario, health, investor, validation |
+
+### Idea Validation
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/idea-canvases` | Create canvas + run validation |
+| `GET` | `/api/idea-canvases` | List canvases |
+| `PATCH` | `/api/idea-canvases/[id]` | Update canvas |
+| `DELETE` | `/api/idea-canvases/[id]` | Delete canvas |
+
+### Plan Review
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/plan-reviews` | Create multi-agent plan review |
+| `GET` | `/api/plan-reviews` | List reviews |
+| `GET` | `/api/plan-reviews/[id]` | Get review with findings |
+| `PATCH` | `/api/plan-reviews/[id]` | Update review status |
+
+### Pitch Decks
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/pitch-decks` | Create deck from template |
+| `GET` | `/api/pitch-decks` | List decks |
+| `GET` | `/api/pitch-decks/[id]` | Get deck with slides |
+| `PATCH` | `/api/pitch-decks/[id]` | Update deck / generate content |
+| `DELETE` | `/api/pitch-decks/[id]` | Delete deck |
+
+### Plan vs Actuals
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/actuals` | Import actual financials |
+| `GET` | `/api/actuals` | List actuals with variance |
+| `PATCH` | `/api/actuals/[id]` | Update actual entry |
+| `DELETE` | `/api/actuals/[id]` | Delete actual entry |
+
+### Research
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/research` | List verified sources |
+| `POST` | `/api/research` | Run AI-powered research |
+| `GET` | `/api/research/[id]` | Get source detail with citations |
+
+### AI Agents & Pipelines
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/agents` | Execute agent task via orchestrator |
+| `GET` | `/api/agents` | List agent sessions |
+| `POST` | `/api/pipelines` | Create DAG pipeline |
+| `GET` | `/api/pipelines` | List pipelines |
+| `POST` | `/api/pipelines/[id]` | Execute pipeline |
+| `PATCH` | `/api/pipelines/[id]` | Update pipeline |
+| `DELETE` | `/api/pipelines/[id]` | Delete pipeline |
+
+### Tools & Memory
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/tools/execute` | List registered tools |
+| `POST` | `/api/tools/execute` | Execute a tool |
+| `GET` | `/api/tools/approvals` | List pending approvals |
+| `POST` | `/api/tools/approvals` | Approve/reject execution |
+| `GET` | `/api/memories` | Retrieve/search memories |
+| `POST` | `/api/memories` | Store/compress/cleanup memories |
+
+### Reports, Workflows & Exports
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/reports` | Generate AI report |
+| `GET` | `/api/reports` | List reports |
+| `POST` | `/api/workflows` | Create workflow |
+| `GET` | `/api/workflows` | List workflows |
+| `PATCH` | `/api/workflows/[id]` | Update workflow |
+| `DELETE` | `/api/workflows/[id]` | Delete workflow |
+| `POST` | `/api/exports` | Create export job |
+| `GET` | `/api/exports` | List export jobs |
+| `GET` | `/api/exports/[id]?download=true` | Download exported file |
+
+### Infrastructure
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/observability` | Event dashboard + token usage |
+| `POST` | `/api/observability` | Track event / trace |
+| `GET` | `/api/browser` | List browser sessions |
+| `POST` | `/api/browser` | Create session / execute action / screenshot / extract |
+| `GET` | `/api/kpis` | List KPI metrics |
+| `POST` | `/api/kpis` | Create/update KPI |
+| `GET` | `/api/notifications` | List notifications |
+| `POST` | `/api/notifications` | Create notification |
+| `PATCH` | `/api/notifications` | Mark as read |
+| `GET` | `/api/settings` | Get organization settings |
+| `PATCH` | `/api/settings` | Update organization settings |
 
 ---
 
-## Financial Intelligence Engine
+## Database Overview
 
-### SaaS Metrics Calculator
+38 interconnected Prisma models organized into 15+ domain groups, persisted in SQLite (development) with a migration path to PostgreSQL (production).
 
-| Metric | Formula | Source |
+### Entity Relationship Overview
+
+```
+User ──┬── Membership ──── Organization ──┬── Workspace
+       ├── ApiKey                            ├── BusinessPlan ──── PlanSection
+       ├── AuditLog                          ├── Forecast ──┬── ForecastRevenue
+       ├── ChatSession ── ChatMessage        │               ├── ForecastExpense
+       ├── AgentSession ──┬── AgentTask      │               └── FinancialStatement
+       │                  ├── AgentMemory    ├── Kpi
+       │                  └── ToolExecution  ├── Report
+       ├── BrowserSession ── BrowserSnapshot ├── IdeaCanvas ── IdeaValidation ── IdeaBenchmark
+       ├── Export                              ├── PlanReview ── PlanReviewFinding
+       └── Notification                        ├── PitchDeck ──┬── PitchDeckSlide
+                                                │               └── PitchDeckQuestion
+                                                ├── ActualFinancial ── ForecastVariance ── FinancialAlert
+                                                ├── ResearchSource ──┬── ResearchCitation
+                                                │                    └── IndustryBenchmark
+                                                ├── AccountingConnection
+                                                ├── Workflow ──┬── WorkflowStep
+                                                │              ├── WorkflowRun
+                                                │              └── WorkflowStepRun
+                                                ├── AgentPipeline ──┬── AgentPipelineStep
+                                                │                   └── AgentPipelineRun
+                                                │                        └── PipelineStepRun
+                                                ├── Subscription
+                                                └── Integration ── IntegrationEvent
+
+MemoryEntry (standalone)          TokenUsage (standalone)
+ObservabilityEvent (standalone)   SkillRegistry (standalone)
+AgentPermission (standalone)      AutomationLog (standalone)
+ScheduledJob (standalone)         RateLimitLog (standalone)
+```
+
+### Domain Summary
+
+| Domain | Models | Count |
 |---|---|---|
-| MRR | Sum of subscription revenue KPIs | KPI table |
-| ARR | MRR × 12 | Calculated |
-| CAC | Marketing spend / New customers | KPI table |
-| LTV | ARPU × (1/churn) × gross margin | KPI table |
-| LTV:CAC Ratio | LTV / CAC | Calculated |
-| Churn Rate | From KPI data | KPI table |
-| Gross Margin | (Revenue - COGS) / Revenue | KPI table |
-| Payback Period | CAC / (MRR × Gross Margin) | Calculated |
-| Rule of 40 | Growth rate + Margin | Calculated |
-
-### Burn Rate Analysis
-- Gross/Net burn rate from forecast financial statements
-- Cash runway calculation (months until zero)
-- Burn trend detection (increasing/stable/decreasing)
-- Monthly burn history with cash balance
-
-### KPI Health Scoring
-- Weighted scoring: Revenue (30%), Cash (25%), Growth (20%), SaaS (15%), Efficiency (10%)
-- A-F grading system with smart alerts
-- Category-level health status (healthy/warning/critical)
-
-### Investor Metrics
-- Revenue multiple valuation
-- Traction metrics (MRR growth, customer growth, NRR)
-- Unit economics (LTV, CAC, LTV:CAC, payback, margin)
-- Burn efficiency (net burn, ARR per employee, runway)
-
-### Forecast Validation
-- Error detection (negative runway, unrealistic growth, missing data)
-- Assumption documentation
-- Risk factor identification
-
-**API:** `GET/POST /api/finance?type=saas|burn_rate|scenario|health|investor|validation`
-
----
-
-## Export System
-
-### Supported Formats
-
-| Format | Implementation | Description |
-|---|---|---|
-| **PDF** | HTML with print-optimized CSS | Professional PDF output |
-| **DOCX** | Word-compatible HTML with Office namespaces | Microsoft Word format |
-| **PPTX** | Slide-based HTML from H2 sections | PowerPoint format |
-| **XLSX** | SpreadsheetML XML | Excel native format |
-| **CSV** | Standard CSV with escaping | Comma-separated values |
-| **Markdown** | Direct content pass-through | Plain text format |
-
-### Export Types
-
-| Type | Data Source | Content |
-|---|---|---|
-| `plan` | BusinessPlan + PlanSections | Full plan with all sections |
-| `report` | Report content | AI-generated report |
-| `forecast` | Forecast + Revenue/Expenses + Statements | Financial projections with tables |
-| `kpi` | KPI data grouped by category | KPI summary with change calculations |
-
-**API:** `GET/POST /api/exports`, `GET /api/exports/[id]?download=true`
-
----
-
-## Observability System
-
-### Features
-
-- **Event Tracking** — All executions (agent, workflow, pipeline, browser, tool, API) recorded
-- **Distributed Tracing** — Trace ID + Span ID for request correlation
-- **Token Usage** — AI token consumption by agent type, model, request type
-- **Cost Estimation** — Automated cost calculation ($0.01/1K tokens)
-- **Dashboard** — Event breakdown, token usage trends, error tracking, slow operations
-- **Data Retention** — Configurable cleanup of old events
-
-### Dashboard Metrics
-
-| Metric | Description |
-|---|---|
-| Total Events | Count by time range |
-| Average Response Time | Mean execution duration |
-| Token Usage | Total tokens consumed |
-| Error Rate | Percentage of error/critical events |
-| Events by Type | Breakdown across 6 event types |
-| Token by Agent | Usage per agent type |
-| Daily Trend | Time series of events and tokens |
-
-**API:** `GET/POST /api/observability`
+| Core | User, Organization, Workspace, Membership | 4 |
+| Auth & Security | ApiKey, AuditLog, RateLimitLog | 3 |
+| Business Plans | BusinessPlan, PlanSection | 2 |
+| Financial Forecasting | Forecast, ForecastRevenue, ForecastExpense, FinancialStatement | 4 |
+| KPI Intelligence | Kpi | 1 |
+| Idea Validation | IdeaCanvas, IdeaValidation, IdeaBenchmark | 3 |
+| Plan Review | PlanReview, PlanReviewFinding | 2 |
+| Pitch Deck | PitchDeck, PitchDeckSlide, PitchDeckQuestion | 3 |
+| Plan vs Actuals | ActualFinancial, ForecastVariance, FinancialAlert, AccountingConnection | 4 |
+| Research | ResearchSource, ResearchCitation, IndustryBenchmark | 3 |
+| AI Agents | AgentSession, AgentTask, AgentMemory, ToolExecution | 4 |
+| Agent Pipelines | AgentPipeline, AgentPipelineStep, AgentPipelineRun, PipelineStepRun | 4 |
+| Memory | MemoryEntry | 1 |
+| Chat | ChatSession, ChatMessage | 2 |
+| Workflows | Workflow, WorkflowStep, WorkflowRun, WorkflowStepRun | 4 |
+| Browser | BrowserSession, BrowserSnapshot | 2 |
+| Reports & Exports | Report, Export | 2 |
+| Integrations | Integration, IntegrationEvent | 2 |
+| Billing | Subscription | 1 |
+| Notifications | Notification | 1 |
+| Observability | TokenUsage, ObservabilityEvent | 2 |
+| Scheduling & Automation | ScheduledJob, AutomationLog, SkillRegistry, AgentPermission | 4 |
+| **Total** | | **38+** |
 
 ---
 
@@ -708,13 +795,13 @@ rankedScore = relevanceScore × (1 + accessCount × 0.1) × recencyBoost
 
 ### RBAC Role Hierarchy
 
-| Role | Permissions |
-|---|---|
-| `super_admin` / `owner` | Wildcard access (`*`) |
-| `admin` | read, write, execute, admin |
-| `manager` | read, write, execute |
-| `accountant` | read, write, execute:finance |
-| `viewer` | read only |
+| Role | Permissions | Scope |
+|---|---|---|
+| `super_admin` / `owner` | Wildcard access (`*`) | Full system |
+| `admin` | read, write, execute, admin | Organization-wide |
+| `manager` | read, write, execute | Department-level |
+| `accountant` | read, write, execute:finance | Financial data |
+| `viewer` | read only | Read-only access |
 
 ### Resource-Action Matrix
 
@@ -741,278 +828,102 @@ IETF standard headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimi
 
 All API actions logged with: userId, organizationId, action, resource, resourceId, status, IP address, user agent, timestamp.
 
-### Agent Permissions
-
-Per-agent resource/action permissions with constraints (e.g., rate limits, allowed fields) stored in `AgentPermission` table.
-
 ### API Key Management
 
 SHA-256 hashed keys with prefix identification, permission scoping, expiration, and usage tracking.
 
 ---
 
-## Database Schema
+## Export System
 
-38 interconnected models organized into 12 domain groups.
+### Supported Formats
 
-### Entity Relationship Overview
-
-```
-User ──┬── Membership ──── Organization ──┬── Workspace
-       ├── ApiKey                            ├── BusinessPlan ──── PlanSection
-       ├── AuditLog                          ├── Forecast ──┬── ForecastRevenue
-       ├── ChatSession ── ChatMessage        │               ├── ForecastExpense
-       ├── AgentSession ──┬── AgentTask      │               └── FinancialStatement
-       │                  ├── AgentMemory    ├── Kpi
-       │                  └── ToolExecution  ├── Report
-       ├── BrowserSession ── BrowserSnapshot ├── Workflow ──┬── WorkflowStep
-       ├── Export                              │              ├── WorkflowRun
-       └── Notification                        │              └── WorkflowStepRun
-                                                ├── AgentPipeline ──┬── AgentPipelineStep
-                                                │                   └── AgentPipelineRun
-                                                │                        └── PipelineStepRun
-                                                ├── Subscription
-                                                ├── Integration ── IntegrationEvent
-                                                ├── AutomationLog
-                                                ├── ScheduledJob
-                                                └── RateLimitLog
-
-MemoryEntry (standalone)
-TokenUsage (standalone)
-ObservabilityEvent (standalone)
-SkillRegistry (standalone)
-AgentPermission (standalone)
-```
-
-### Model Summary
-
-| Domain | Models | Count |
+| Format | Implementation | Description |
 |---|---|---|
-| Core | User, Organization, Workspace, Membership | 4 |
-| Auth & Security | ApiKey, AuditLog, RateLimitLog | 3 |
-| Business Plans | BusinessPlan, PlanSection | 2 |
-| Forecasting | Forecast, ForecastRevenue, ForecastExpense, FinancialStatement | 4 |
-| KPI | Kpi | 1 |
-| AI Agents | AgentSession, AgentTask, AgentMemory, ToolExecution | 4 |
-| Agent Pipelines | AgentPipeline, AgentPipelineStep, AgentPipelineRun, PipelineStepRun | 4 |
-| Memory | MemoryEntry | 1 |
-| Chat | ChatSession, ChatMessage | 2 |
-| Workflows | Workflow, WorkflowStep, WorkflowRun, WorkflowStepRun | 4 |
-| Browser | BrowserSession, BrowserSnapshot | 2 |
-| Reports | Report | 1 |
-| Notifications | Notification | 1 |
-| Billing | Subscription | 1 |
-| Exports | Export | 1 |
-| Integrations | Integration, IntegrationEvent | 2 |
-| Scheduling | ScheduledJob | 1 |
-| Observability | TokenUsage, ObservabilityEvent | 2 |
-| Automation | AutomationLog, SkillRegistry, AgentPermission | 3 |
-| **Total** | | **38** |
+| **PDF** | HTML with print-optimized CSS | Professional PDF output |
+| **DOCX** | Word-compatible HTML with Office namespaces | Microsoft Word format |
+| **PPTX** | Slide-based HTML from H2 sections | PowerPoint format |
+| **XLSX** | SpreadsheetML XML | Excel native format |
+| **CSV** | Standard CSV with escaping | Comma-separated values |
+| **Markdown** | Direct content pass-through | Plain text format |
+
+### Export Types
+
+| Type | Data Source | Content |
+|---|---|---|
+| `plan` | BusinessPlan + PlanSections | Full plan with all sections |
+| `report` | Report content | AI-generated report |
+| `forecast` | Forecast + Revenue/Expenses + Statements | Financial projections with tables |
+| `kpi` | KPI data grouped by category | KPI summary with change calculations |
+| `pitch-deck` | PitchDeck + Slides | Investor-ready presentation |
 
 ---
 
-## API Reference
+## Observability
 
-### Authentication
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/auth/register` | Register user + org + KPIs (rate limited) |
-| POST | `/api/auth/login` | Login with audit trail (rate limited) |
-| GET | `/api/auth/session` | Check session status |
+### Features
 
-### Chat
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/chat` | Send message via agent orchestrator |
-| GET | `/api/chat/[id]` | Get chat session + messages |
-| DELETE | `/api/chat/[id]` | Delete chat session |
+- **Event Tracking** — All executions (agent, workflow, pipeline, browser, tool, API) recorded
+- **Distributed Tracing** — Trace ID + Span ID for request correlation across pipeline steps
+- **Token Usage** — AI token consumption by agent type, model, and request type
+- **Cost Estimation** — Automated cost calculation ($0.01/1K tokens)
+- **Dashboard** — Event breakdown, token usage trends, error tracking, slow operations
+- **Data Retention** — Configurable cleanup of old events (90-day default)
 
-### Business Plans
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/plans` | Create plan with AI generation |
-| GET | `/api/plans` | List plans |
-| PATCH | `/api/plans/[id]` | Update plan/sections |
-| DELETE | `/api/plans/[id]` | Delete plan |
+### Dashboard Metrics
 
-### Forecasting
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/forecasts` | Create forecast + statements |
-| GET | `/api/forecasts` | List forecasts with items |
-
-### AI Agents
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/agents` | Execute agent task via orchestrator |
-| GET | `/api/agents` | List agent sessions |
-
-### Agent Pipelines
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/pipelines` | Create DAG pipeline |
-| GET | `/api/pipelines` | List pipelines |
-| GET | `/api/pipelines/[id]` | Get pipeline status |
-| POST | `/api/pipelines/[id]` | Execute pipeline |
-| PATCH | `/api/pipelines/[id]` | Update pipeline |
-| DELETE | `/api/pipelines/[id]` | Delete pipeline |
-
-### Tool Execution
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/tools/execute` | List registered tools |
-| POST | `/api/tools/execute` | Execute a tool |
-| GET | `/api/tools/approvals` | List pending approvals |
-| POST | `/api/tools/approvals` | Approve/reject execution |
-
-### Memory
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/memories` | Retrieve/search memories |
-| POST | `/api/memories` | Store/compress/cleanup memories |
-
-### Browser Automation
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/browser` | List browser sessions |
-| POST | `/api/browser` | Create session / execute action / screenshot / extract / close |
-
-### Reports
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/reports` | Generate AI report |
-| GET | `/api/reports` | List reports |
-
-### Workflows
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/workflows` | Create workflow |
-| GET | `/api/workflows` | List workflows |
-| PATCH | `/api/workflows/[id]` | Update workflow |
-| DELETE | `/api/workflows/[id]` | Delete workflow |
-
-### Financial Intelligence
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/finance` | Get SaaS/burn/scenario/health/investor metrics |
-| POST | `/api/finance` | Validate forecast |
-
-### Exports
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/exports` | Start export job |
-| GET | `/api/exports` | List exports |
-| GET | `/api/exports/[id]` | Get status / download file |
-
-### Observability
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/observability` | Dashboard / token stats / traces |
-| POST | `/api/observability` | Track event / token usage |
-
-### Other
-| Method | Endpoint | Description |
-|---|---|---|
-| GET/POST | `/api/kpis` | List/create KPIs |
-| GET/POST/PATCH | `/api/notifications` | CRUD notifications |
-| GET/PATCH | `/api/settings` | Organization settings |
+| Metric | Description |
+|---|---|
+| Total Events | Count by time range (1d, 7d, 30d, 90d, 1y) |
+| Average Response Time | Mean execution duration |
+| Token Usage | Total tokens consumed with cost breakdown |
+| Error Rate | Percentage of error/critical events |
+| Events by Type | Breakdown across 6 event types |
+| Token by Agent | Usage per agent type |
+| Daily Trend | Time series of events and tokens |
+| Slow Operations | Top 10 slowest operations with duration |
 
 ---
 
-## State Management
+## Documentation
 
-### Zustand Stores
-
-```typescript
-// app-store.ts — Navigation & UI
-interface AppState {
-  currentPage: 'dashboard' | 'plans' | 'forecasting' | 'agents' | 'copilot' | 
-    'reports' | 'workflows' | 'observability' | 'browser' | 'settings'
-  sidebarOpen: boolean
-  sidebarCollapsed: boolean
-}
-
-// auth-store.ts — Authentication
-interface AuthState {
-  user: { id, email, name, avatar, role } | null
-  organization: { id, name, slug, logo, industry, size, currency } | null
-  isAuthenticated: boolean
-  login / register / logout / setUser / setOrganization
-}
-```
+| Document | Description |
+|---|---|
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | System architecture, request lifecycle, and design decisions |
+| [API.md](./API.md) | Complete API reference with request/response schemas |
+| [DATABASE.md](./DATABASE.md) | Database schema, entity relationships, and migration guide |
+| [PRD.md](./PRD.md) | Product requirements document with user stories and success metrics |
+| [worklog.md](./worklog.md) | Development worklog and change history |
 
 ---
 
-## Environment Variables
+## Contributing
 
-```env
-# Database
-DATABASE_URL="file:./db/custom.db"
+We welcome contributions! Please follow these steps:
 
-# AI SDK (z-ai-web-dev-sdk) — pre-configured, no API keys needed in sandbox
-```
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
+4. **Push** to the branch (`git push origin feature/amazing-feature`)
+5. **Open** a Pull Request
 
----
+### Development Guidelines
 
-## Roadmap
-
-### Phase 1 — Enterprise Foundation (Current) ✅
-
-- [x] Authentication with rate limiting + audit logging
-- [x] Dashboard with KPI cards, charts, AI insights
-- [x] Business Plan Builder with AI generation
-- [x] Financial Forecasting Engine with multi-scenario modeling
-- [x] KPI Intelligence dashboard
-- [x] AI Agent System (8 agents) with memory injection
-- [x] Agent Orchestration (DAG pipelines with topological sort)
-- [x] Tool Execution Runtime (10 tools, approval system, tracing)
-- [x] Memory Architecture (7 categories, relevance ranking, compression)
-- [x] Browser Automation Console (agent-browser integration)
-- [x] Real Export System (PDF/DOCX/PPTX/XLSX/CSV/MD)
-- [x] Financial Intelligence Engine (SaaS metrics, burn rate, scenarios, health, investor)
-- [x] Observability System (execution tracking, distributed tracing, token usage)
-- [x] DAG Workflow Engine (6 step types, condition branching, template resolution)
-- [x] Security Architecture (RBAC, rate limiting, audit logging, agent permissions, API keys)
-- [x] AI Copilot chat interface
-- [x] Report Generator (5 types)
-- [x] Settings panel
-
-### Phase 2 — Realtime & Integration (Next)
-
-- [ ] Real-time WebSocket notifications
-- [ ] Stripe billing integration (real payments)
-- [ ] Rich text editor (TipTap) for plan sections
-- [ ] Real browser automation via Playwright pools
-- [ ] Multi-language support (EN, MS, ZH)
-- [ ] Email notification delivery (SendGrid/Resend)
-- [ ] Advanced KPI alerting rules
-- [ ] External integration connectors (QuickBooks, Xero, Stripe, HubSpot)
-- [ ] Cron job scheduler service
-- [ ] Advanced admin analytics
-
-### Phase 3 — Scale (Future)
-
-- [ ] PostgreSQL migration with pgvector for embeddings
-- [ ] Redis caching layer
-- [ ] LangGraph multi-agent orchestration framework
-- [ ] Temporal workflow engine integration
-- [ ] GraphQL API layer
-- [ ] Meilisearch full-text search
-- [ ] BullMQ job queue for background processing
-- [ ] Docker/Kubernetes deployment
-- [ ] Sandbox execution environment (Docker isolation)
-- [ ] Horizontal scaling with load balancing
+- Follow the existing code style and TypeScript conventions
+- Ensure all API routes use `withApiHandler` for auth, RBAC, rate limiting, and audit logging
+- Add appropriate Zod schemas for new API inputs
+- Update the relevant documentation files when adding features
+- Test your changes with `bun run lint` before submitting
 
 ---
 
 ## License
 
-This project is proprietary software. All rights reserved.
+This project is licensed under the **MIT License**. See the [LICENSE](./LICENSE) file for details.
 
 ---
 
 <p align="center">
-  Built with ❤️ using Next.js 16, React 19, TypeScript, and AI.<br/>
-  <strong>GangNiaga AI OS</strong> — Your Autonomous Business Operating System<br/>
-  <em>OpenClaw-inspired • AI-native • Enterprise-grade</em>
+  <strong>GangNiaga AI OS</strong> — Autonomous Business Operating System for Startups & SMEs<br/>
+  <em>Built with Next.js 16 • React 19 • TypeScript 5 • Prisma 6 • z-ai-web-dev-sdk</em>
 </p>
