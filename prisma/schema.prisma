@@ -1,0 +1,420 @@
+// GangNiaga AI - Autonomous Business Operating System
+// Database Schema v2.0
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// CORE TABLES
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  passwordHash  String?
+  avatar        String?
+  role          String    @default("user") // user, admin, super_admin
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  memberships   Membership[]
+  chatSessions  ChatSession[]
+  notifications Notification[]
+  agentSessions AgentSession[]
+
+  @@map("users")
+}
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  logo        String?
+  industry    String?
+  size        String?  // startup, sme, enterprise
+  country     String?
+  currency    String   @default("USD")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  memberships Membership[]
+  workspaces  Workspace[]
+  plans       BusinessPlan[]
+  forecasts   Forecast[]
+  kpis        Kpi[]
+  reports     Report[]
+  workflows   Workflow[]
+
+  @@map("organizations")
+}
+
+model Workspace {
+  id             String   @id @default(cuid())
+  name           String
+  description    String?
+  organizationId String
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("workspaces")
+}
+
+model Membership {
+  id             String   @id @default(cuid())
+  userId         String
+  organizationId String
+  role           String   @default("viewer") // owner, admin, manager, accountant, viewer
+  invitedAt      DateTime @default(now())
+  acceptedAt     DateTime?
+  isActive       Boolean  @default(true)
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@map("memberships")
+}
+
+// ============================================
+// BUSINESS PLAN BUILDER
+// ============================================
+
+model BusinessPlan {
+  id             String   @id @default(cuid())
+  title          String
+  description    String?
+  status         String   @default("draft") // draft, review, approved, archived
+  organizationId String
+  version        Int      @default(1)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  sections     PlanSection[]
+
+  @@map("business_plans")
+}
+
+model PlanSection {
+  id             String   @id @default(cuid())
+  planId         String
+  type           String   // executive_summary, market_analysis, swot, financial, competitor, team, marketing, operations
+  title          String
+  content        String   @default("")
+  order          Int      @default(0)
+  aiGenerated    Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  plan BusinessPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@map("plan_sections")
+}
+
+// ============================================
+// FINANCIAL FORECASTING
+// ============================================
+
+model Forecast {
+  id             String   @id @default(cuid())
+  name           String
+  type           String   @default("base") // best, base, worst, custom
+  organizationId String
+  startMonth     String   // e.g. "2025-01"
+  endMonth       String   // e.g. "2026-12"
+  currency       String   @default("USD")
+  metadata       String   @default("{}") // JSON string for extra config
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  revenueItems ForecastRevenue[]
+  expenseItems ForecastExpense[]
+  statements   FinancialStatement[]
+
+  @@map("forecasts")
+}
+
+model ForecastRevenue {
+  id           String  @id @default(cuid())
+  forecastId   String
+  name         String
+  category     String  @default("subscription") // subscription, transaction, service, product, other
+  amount       Float   @default(0)
+  growthRate   Float   @default(0) // monthly growth percentage
+  startMonth   String
+  endMonth     String?
+  recurring    Boolean @default(true)
+  metadata     String  @default("{}")
+  order        Int     @default(0)
+
+  forecast Forecast @relation(fields: [forecastId], references: [id], onDelete: Cascade)
+
+  @@map("forecast_revenues")
+}
+
+model ForecastExpense {
+  id           String  @id @default(cuid())
+  forecastId   String
+  name         String
+  category     String  @default("operational") // payroll, infrastructure, saas, tax, marketing, operational, other
+  amount       Float   @default(0)
+  growthRate   Float   @default(0)
+  startMonth   String
+  endMonth     String?
+  recurring    Boolean @default(true)
+  metadata     String  @default("{}")
+  order        Int     @default(0)
+
+  forecast Forecast @relation(fields: [forecastId], references: [id], onDelete: Cascade)
+
+  @@map("forecast_expenses")
+}
+
+model FinancialStatement {
+  id           String  @id @default(cuid())
+  forecastId   String
+  month        String  // "2025-01"
+  type         String  // pnl, balance_sheet, cash_flow
+  revenue      Float   @default(0)
+  expenses     Float   @default(0)
+  netIncome    Float   @default(0)
+  assets       Float   @default(0)
+  liabilities  Float   @default(0)
+  equity       Float   @default(0)
+  cashFlow     Float   @default(0)
+  cashBalance  Float   @default(0)
+  burnRate     Float   @default(0)
+  runway       Float   @default(0) // months
+  metadata     String  @default("{}")
+
+  forecast Forecast @relation(fields: [forecastId], references: [id], onDelete: Cascade)
+
+  @@unique([forecastId, month, type])
+  @@map("financial_statements")
+}
+
+// ============================================
+// KPI INTELLIGENCE
+// ============================================
+
+model Kpi {
+  id             String   @id @default(cuid())
+  name           String
+  category       String   // revenue, growth, saas, cash, customer
+  value          Float    @default(0)
+  previousValue  Float    @default(0)
+  target         Float?
+  unit           String   @default("USD") // USD, percent, count
+  period         String   // "2025-01", "Q1-2025", "2025"
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("kpis")
+}
+
+// ============================================
+// AI AGENT SYSTEM
+// ============================================
+
+model AgentSession {
+  id         String   @id @default(cuid())
+  userId     String
+  agentType  String   // cfo, ceo, research, growth, operations, fundraising, browser, reporting
+  title      String?
+  status     String   @default("active") // active, completed, failed
+  metadata   String   @default("{}")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks    AgentTask[]
+  memories AgentMemory[]
+
+  @@map("agent_sessions")
+}
+
+model AgentTask {
+  id        String   @id @default(cuid())
+  sessionId String
+  type      String
+  input     String
+  output    String?
+  status    String   @default("pending") // pending, running, completed, failed
+  metadata  String   @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  session      AgentSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  executions   ToolExecution[]
+
+  @@map("agent_tasks")
+}
+
+model AgentMemory {
+  id        String   @id @default(cuid())
+  sessionId String
+  type      String   // user, workspace, agent, forecast, workflow
+  key       String
+  value     String
+  metadata  String   @default("{}")
+  createdAt DateTime @default(now())
+
+  session AgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("agent_memories")
+}
+
+model ToolExecution {
+  id       String  @id @default(cuid())
+  taskId   String
+  tool     String  // browser, email, forecast, pdf, crm, spreadsheet, analytics
+  input    String
+  output   String?
+  status   String  @default("pending") // pending, running, completed, failed
+  duration Int?    // ms
+  metadata String  @default("{}")
+
+  task AgentTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@map("tool_executions")
+}
+
+// ============================================
+// CHAT SYSTEM
+// ============================================
+
+model ChatSession {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String   @default("New Chat")
+  agentType String?  // general, cfo, ceo, research, growth
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  sessionId String
+  role      String   // user, assistant, system
+  content   String
+  metadata  String   @default("{}")
+  createdAt DateTime @default(now())
+
+  session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("chat_messages")
+}
+
+// ============================================
+// WORKFLOW AUTOMATION
+// ============================================
+
+model Workflow {
+  id             String   @id @default(cuid())
+  name           String
+  description    String?
+  trigger        String   // manual, scheduled, event
+  schedule       String?  // cron expression
+  isActive       Boolean  @default(false)
+  organizationId String
+  metadata       String   @default("{}")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  steps        WorkflowStep[]
+  runs         WorkflowRun[]
+
+  @@map("workflows")
+}
+
+model WorkflowStep {
+  id         String  @id @default(cuid())
+  workflowId String
+  type       String  // agent, tool, condition, delay, notification
+  name       String
+  config     String  @default("{}")
+  order      Int     @default(0)
+  isActive   Boolean @default(true)
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@map("workflow_steps")
+}
+
+model WorkflowRun {
+  id         String   @id @default(cuid())
+  workflowId String
+  status     String   @default("pending") // pending, running, completed, failed
+  triggeredBy String?
+  result     String?
+  startedAt  DateTime?
+  completedAt DateTime?
+  metadata   String   @default("{}")
+  createdAt  DateTime @default(now())
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@map("workflow_runs")
+}
+
+// ============================================
+// REPORTS
+// ============================================
+
+model Report {
+  id             String   @id @default(cuid())
+  title          String
+  type           String   // investor, board, kpi, financial, market
+  format         String   @default("pdf") // pdf, docx, pptx, csv, xlsx
+  status         String   @default("draft") // draft, generated, approved, sent
+  content        String   @default("{}") // JSON
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("reports")
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String   @default("info") // info, warning, error, success
+  read      Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
