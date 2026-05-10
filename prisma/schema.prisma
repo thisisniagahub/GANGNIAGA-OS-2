@@ -1,5 +1,5 @@
 // GangNiaga AI - Autonomous Business Operating System
-// Database Schema v2.0
+// Database Schema v3.0 — Enterprise Architecture
 
 generator client {
   provider = "prisma-client-js"
@@ -26,10 +26,14 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  memberships   Membership[]
-  chatSessions  ChatSession[]
-  notifications Notification[]
-  agentSessions AgentSession[]
+  memberships     Membership[]
+  chatSessions    ChatSession[]
+  notifications   Notification[]
+  agentSessions   AgentSession[]
+  browserSessions BrowserSession[]
+  exports         Export[]
+  apiKeys         ApiKey[]
+  auditLogs       AuditLog[]
 
   @@map("users")
 }
@@ -47,13 +51,20 @@ model Organization {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  memberships Membership[]
-  workspaces  Workspace[]
-  plans       BusinessPlan[]
-  forecasts   Forecast[]
-  kpis        Kpi[]
-  reports     Report[]
-  workflows   Workflow[]
+  memberships     Membership[]
+  workspaces      Workspace[]
+  plans           BusinessPlan[]
+  forecasts       Forecast[]
+  kpis            Kpi[]
+  reports         Report[]
+  workflows       Workflow[]
+  subscriptions   Subscription[]
+  exports         Export[]
+  automationLogs  AutomationLog[]
+  integrations    Integration[]
+  pipelines       AgentPipeline[]
+  scheduledJobs   ScheduledJob[]
+  rateLimitLogs   RateLimitLog[]
 
   @@map("organizations")
 }
@@ -86,6 +97,63 @@ model Membership {
 
   @@unique([userId, organizationId])
   @@map("memberships")
+}
+
+// ============================================
+// AUTHENTICATION & SECURITY
+// ============================================
+
+model ApiKey {
+  id             String   @id @default(cuid())
+  userId         String
+  name           String
+  keyHash        String   // SHA-256 hash of the API key
+  keyPrefix      String   // First 8 chars for identification
+  permissions    String   @default("[]") // JSON array of permission strings
+  lastUsedAt     DateTime?
+  expiresAt      DateTime?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("api_keys")
+}
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  userId         String?
+  organizationId String?
+  action         String   // e.g. "plan.create", "agent.execute", "workflow.run"
+  resource       String   // e.g. "business_plans", "agent_sessions", "workflows"
+  resourceId     String?
+  status         String   @default("success") // success, failure, denied
+  ipAddress      String?
+  userAgent      String?
+  details        String?  // JSON details of the action
+  metadata       String   @default("{}")
+  createdAt      DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
+}
+
+model RateLimitLog {
+  id             String   @id @default(cuid())
+  organizationId String?
+  userId         String?
+  endpoint       String
+  method         String   // GET, POST, etc.
+  statusCode     Int      @default(200)
+  responseTime   Int      @default(0) // ms
+  tokenCount     Int      @default(0) // AI tokens consumed
+  metadata       String   @default("{}")
+  createdAt      DateTime @default(now())
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("rate_limit_logs")
 }
 
 // ============================================
@@ -284,7 +352,7 @@ model AgentMemory {
 model ToolExecution {
   id       String  @id @default(cuid())
   taskId   String
-  tool     String  // browser, email, forecast, pdf, crm, spreadsheet, analytics
+  tool     String  // browser, email, forecast, pdf, crm, spreadsheet, analytics, web_search, code_execute
   input    String
   output   String?
   status   String  @default("pending") // pending, running, completed, failed
@@ -294,6 +362,107 @@ model ToolExecution {
   task AgentTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   @@map("tool_executions")
+}
+
+// ============================================
+// AGENT ORCHESTRATION (DAG PIPELINES)
+// ============================================
+
+model AgentPipeline {
+  id             String   @id @default(cuid())
+  name           String
+  description    String?
+  organizationId String
+  status         String   @default("draft") // draft, active, paused, archived
+  triggerType    String   @default("manual") // manual, scheduled, event
+  schedule       String?  // cron expression
+  metadata       String   @default("{}")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  steps        AgentPipelineStep[]
+  runs         AgentPipelineRun[]
+
+  @@map("agent_pipelines")
+}
+
+model AgentPipelineStep {
+  id         String  @id @default(cuid())
+  pipelineId String
+  agentType  String  // cfo, ceo, research, growth, operations, fundraising, browser, reporting
+  name       String
+  description String?
+  inputTemplate String @default("{}") // JSON template for agent input (can reference previous step outputs)
+  config     String  @default("{}") // agent-specific config
+  order      Int     @default(0)
+  dependsOn  String  @default("[]") // JSON array of step IDs this step depends on
+  isActive   Boolean @default(true)
+
+  pipeline AgentPipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+
+  @@map("agent_pipeline_steps")
+}
+
+model AgentPipelineRun {
+  id           String    @id @default(cuid())
+  pipelineId   String
+  status       String    @default("pending") // pending, running, completed, failed, cancelled
+  triggeredBy  String?
+  result       String?   // JSON summary of pipeline execution
+  startedAt    DateTime?
+  completedAt  DateTime?
+  metadata     String    @default("{}")
+  createdAt    DateTime  @default(now())
+
+  pipeline AgentPipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  stepRuns PipelineStepRun[]
+
+  @@map("agent_pipeline_runs")
+}
+
+model PipelineStepRun {
+  id           String   @id @default(cuid())
+  pipelineRunId String
+  stepId       String
+  agentType    String
+  status       String   @default("pending") // pending, running, completed, failed, skipped
+  input        String?  // resolved input for this step
+  output       String?  // agent output
+  error        String?
+  duration     Int?     // ms
+  startedAt    DateTime?
+  completedAt  DateTime?
+  metadata     String   @default("{}")
+
+  pipelineRun AgentPipelineRun @relation(fields: [pipelineRunId], references: [id], onDelete: Cascade)
+
+  @@map("pipeline_step_runs")
+}
+
+// ============================================
+// MEMORY ARCHITECTURE (Global Memory Store)
+// ============================================
+
+model MemoryEntry {
+  id             String   @id @default(cuid())
+  organizationId String?
+  userId         String?
+  agentType      String?  // which agent created this memory
+  category       String   // user_preference, workspace_context, agent_knowledge, forecast_insight, workflow_pattern, market_intelligence, financial_summary
+  key            String
+  value          String   // the memory content
+  summary        String?  // compressed/summarized version
+  relevanceScore Float    @default(1.0) // 0.0-1.0, used for ranking
+  accessCount    Int      @default(0)   // how many times this memory has been retrieved
+  source         String   @default("agent") // agent, user, system, workflow, import
+  tags           String   @default("[]") // JSON array of tags for categorization
+  metadata       String   @default("{}")
+  expiresAt      DateTime? // optional TTL
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("memory_entries")
 }
 
 // ============================================
@@ -353,10 +522,11 @@ model Workflow {
 model WorkflowStep {
   id         String  @id @default(cuid())
   workflowId String
-  type       String  // agent, tool, condition, delay, notification
+  type       String  // agent, tool, condition, delay, notification, pipeline
   name       String
   config     String  @default("{}")
   order      Int     @default(0)
+  dependsOn  String  @default("[]") // JSON array of step IDs (DAG support)
   isActive   Boolean @default(true)
 
   workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
@@ -365,19 +535,38 @@ model WorkflowStep {
 }
 
 model WorkflowRun {
-  id         String   @id @default(cuid())
-  workflowId String
-  status     String   @default("pending") // pending, running, completed, failed
+  id          String    @id @default(cuid())
+  workflowId  String
+  status      String    @default("pending") // pending, running, completed, failed
   triggeredBy String?
-  result     String?
-  startedAt  DateTime?
+  result      String?
+  startedAt   DateTime?
   completedAt DateTime?
-  metadata   String   @default("{}")
-  createdAt  DateTime @default(now())
+  metadata    String    @default("{}")
+  createdAt   DateTime  @default(now())
 
-  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  workflow  Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  stepRuns  WorkflowStepRun[]
 
   @@map("workflow_runs")
+}
+
+model WorkflowStepRun {
+  id           String   @id @default(cuid())
+  workflowRunId String
+  stepId       String
+  status       String   @default("pending") // pending, running, completed, failed, skipped
+  input        String?
+  output       String?
+  error        String?
+  duration     Int?     // ms
+  startedAt    DateTime?
+  completedAt  DateTime?
+  metadata     String   @default("{}")
+
+  workflowRun WorkflowRun @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+
+  @@map("workflow_step_runs")
 }
 
 // ============================================
@@ -424,18 +613,20 @@ model Notification {
 // ============================================
 
 model Subscription {
-  id             String   @id @default(cuid())
-  organizationId String
-  plan           String   @default("free") // free, starter, pro, enterprise
-  status         String   @default("active") // active, cancelled, past_due, trialing
-  stripeCustomerId String?
-  stripePriceId    String?
-  currentPeriodStart DateTime?
-  currentPeriodEnd   DateTime?
-  cancelAtPeriodEnd  Boolean  @default(false)
-  metadata       String   @default("{}")
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id                  String    @id @default(cuid())
+  organizationId      String
+  plan                String    @default("free") // free, starter, pro, enterprise
+  status              String    @default("active") // active, cancelled, past_due, trialing
+  stripeCustomerId    String?
+  stripePriceId       String?
+  currentPeriodStart  DateTime?
+  currentPeriodEnd    DateTime?
+  cancelAtPeriodEnd   Boolean   @default(false)
+  metadata            String    @default("{}")
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@map("subscriptions")
 }
@@ -457,6 +648,9 @@ model Export {
   metadata       String   @default("{}")
   createdAt      DateTime @default(now())
 
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
   @@map("exports")
 }
 
@@ -473,7 +667,8 @@ model BrowserSession {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  snapshots BrowserSnapshot[]
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  snapshots  BrowserSnapshot[]
 
   @@map("browser_sessions")
 }
@@ -493,19 +688,83 @@ model BrowserSnapshot {
 }
 
 // ============================================
+// INTEGRATIONS
+// ============================================
+
+model Integration {
+  id             String   @id @default(cuid())
+  organizationId String
+  type           String   // quickbooks, xero, stripe, google_analytics, slack, discord, github, hubspot, salesforce
+  name           String
+  config         String   @default("{}") // encrypted config JSON
+  status         String   @default("disconnected") // connected, disconnected, error
+  lastSyncAt     DateTime?
+  metadata       String   @default("{}")
+  isActive       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  events       IntegrationEvent[]
+
+  @@map("integrations")
+}
+
+model IntegrationEvent {
+  id            String   @id @default(cuid())
+  integrationId String
+  type          String   // webhook, sync, action, error
+  payload       String   @default("{}") // JSON payload
+  status        String   @default("pending") // pending, processed, failed
+  processedAt   DateTime?
+  metadata      String   @default("{}")
+  createdAt     DateTime @default(now())
+
+  integration Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@map("integration_events")
+}
+
+// ============================================
+// SCHEDULED JOBS
+// ============================================
+
+model ScheduledJob {
+  id             String   @id @default(cuid())
+  organizationId String
+  type           String   // workflow, pipeline, report, browser_scan, sync
+  name           String
+  schedule       String   // cron expression
+  config         String   @default("{}") // JSON config for the job
+  lastRunAt      DateTime?
+  nextRunAt      DateTime?
+  isActive       Boolean  @default(true)
+  metadata       String   @default("{}")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("scheduled_jobs")
+}
+
+// ============================================
 // AUTOMATION LOGS
 // ============================================
 
 model AutomationLog {
   id             String   @id @default(cuid())
   organizationId String
-  type           String   // agent, workflow, browser, report
+  type           String   // agent, workflow, browser, report, pipeline, integration, export
   action         String
   status         String   @default("success") // success, failure, warning
   details        String?
   userId         String?
+  duration       Int?     // ms
   metadata       String   @default("{}")
   createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@map("automation_logs")
 }
@@ -519,7 +778,9 @@ model SkillRegistry {
   name        String
   description String?
   type        String   // tool, agent, integration
+  category    String   @default("general") // browser, finance, communication, analytics, export, crm
   config      String   @default("{}")
+  permissions String   @default("[]") // JSON array of required permissions
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -528,19 +789,57 @@ model SkillRegistry {
 }
 
 // ============================================
-// AGENT PERMISSIONS
+// AGENT PERMISSIONS (RBAC for Agents)
 // ============================================
 
 model AgentPermission {
   id           String   @id @default(cuid())
   agentType    String   // cfo, ceo, research, etc.
-  resource     String   // kpis, forecasts, plans, reports, etc.
+  resource     String   // kpis, forecasts, plans, reports, workflows, integrations, browser, exports
   action       String   // read, write, execute, admin
   isAllowed    Boolean  @default(false)
-  constraints  String   @default("{}") // JSON constraints
+  constraints  String   @default("{}") // JSON constraints (e.g. rate limits, allowed fields)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   @@unique([agentType, resource, action])
   @@map("agent_permissions")
+}
+
+// ============================================
+// OBSERVABILITY & TOKEN TRACKING
+// ============================================
+
+model TokenUsage {
+  id             String   @id @default(cuid())
+  organizationId String?
+  userId         String?
+  agentType      String?
+  model          String   @default("default") // which LLM model was used
+  promptTokens   Int      @default(0)
+  completionTokens Int    @default(0)
+  totalTokens    Int      @default(0)
+  requestType    String   // chat, plan_generate, forecast_analyze, report_generate, agent_task, pipeline_step
+  metadata       String   @default("{}")
+  createdAt      DateTime @default(now())
+
+  @@map("token_usage")
+}
+
+model ObservabilityEvent {
+  id             String   @id @default(cuid())
+  organizationId String?
+  userId         String?
+  eventType      String   // agent_execution, workflow_step, pipeline_step, browser_action, tool_execution, api_request
+  source         String   // which component generated this event
+  status         String   @default("info") // info, warning, error, critical
+  message        String
+  data           String   @default("{}") // JSON event data
+  traceId        String?  // distributed tracing ID
+  spanId         String?  // span within a trace
+  duration       Int?     // ms
+  metadata       String   @default("{}")
+  createdAt      DateTime @default(now())
+
+  @@map("observability_events")
 }

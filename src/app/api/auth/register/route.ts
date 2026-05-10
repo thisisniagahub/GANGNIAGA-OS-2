@@ -1,9 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { cookies } from 'next/headers'
+import { checkRateLimit, logAction, logError } from '@/lib/middleware'
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limiting for registration
+    const clientIp =
+      req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      req.headers.get('x-real-ip') ||
+      'anonymous'
+
+    const rateLimitResult = checkRateLimit(clientIp, 'auth')
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: 'Too many registration attempts. Please try again later.' },
+        { status: 429 }
+      )
+    }
+
     const { name, email, password } = await req.json()
 
     if (!name || !email || !password) {
@@ -74,12 +89,19 @@ export async function POST(req: NextRequest) {
       maxAge: 60 * 60 * 24 * 7, // 7 days
     })
 
+    // Audit log for successful registration
+    await logAction(user.id, 'auth.register', 'users', {
+      email: user.email,
+      organizationId: organization.id,
+    }).catch(() => {})
+
     return NextResponse.json({
       user: { id: user.id, email: user.email, name: user.name, role: 'owner' },
       organization: { id: organization.id, name: organization.name, slug: organization.slug, currency: organization.currency },
     })
   } catch (error) {
     console.error('Registration error:', error)
+    await logError('unknown', 'auth.register', 'users', error instanceof Error ? error.message : 'Unknown error').catch(() => {})
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

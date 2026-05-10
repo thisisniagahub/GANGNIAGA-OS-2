@@ -1,5 +1,9 @@
+// GangNiaga AI — Exports API
+// POST /api/exports — Start a new export job using the export engine
+// GET  /api/exports — List exports for an organization
+
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { startExport, listExports } from '@/lib/exports'
 
 export async function GET(req: NextRequest) {
   try {
@@ -9,31 +13,31 @@ export async function GET(req: NextRequest) {
     if (!organizationId) {
       return NextResponse.json(
         { error: 'Organization ID is required' },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
-    const exports = await db.export.findMany({
-      where: { organizationId },
-      orderBy: { createdAt: 'desc' },
-    })
-
+    const exports = await listExports(organizationId)
     return NextResponse.json({ exports })
   } catch (error) {
     console.error('Exports fetch error:', error)
-    return NextResponse.json({ error: 'Failed to fetch exports' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Failed to fetch exports' },
+      { status: 500 },
+    )
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { organizationId, userId, type, format, title } = body
+    const { type, format, contentId, title, organizationId, userId } = body
 
-    if (!organizationId || !userId || !type || !format || !title) {
+    // Validate required fields
+    if (!organizationId || !userId || !type || !format || !title || !contentId) {
       return NextResponse.json(
-        { error: 'Organization ID, user ID, type, format, and title are required' },
-        { status: 400 }
+        { error: 'organizationId, userId, type, format, title, and contentId are required' },
+        { status: 400 },
       )
     }
 
@@ -42,7 +46,7 @@ export async function POST(req: NextRequest) {
     if (!validTypes.includes(type)) {
       return NextResponse.json(
         { error: `Invalid type. Must be one of: ${validTypes.join(', ')}` },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
@@ -51,26 +55,29 @@ export async function POST(req: NextRequest) {
     if (!validFormats.includes(format)) {
       return NextResponse.json(
         { error: `Invalid format. Must be one of: ${validFormats.join(', ')}` },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
-    // Create export record with "processing" status
-    // In production, this would trigger a background job for actual file generation
-    const exportRecord = await db.export.create({
-      data: {
-        organizationId,
-        userId,
-        type,
-        format,
-        title,
-        status: 'processing',
-      },
+    // Start the export job via the engine
+    const result = await startExport({
+      type,
+      format,
+      contentId,
+      title,
+      organizationId,
+      userId,
     })
 
-    return NextResponse.json({ export: exportRecord }, { status: 201 })
+    return NextResponse.json(
+      { export: { id: result.exportId, status: result.status } },
+      { status: 201 },
+    )
   } catch (error) {
     console.error('Export create error:', error)
-    return NextResponse.json({ error: 'Failed to create export' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Failed to create export' },
+      { status: 500 },
+    )
   }
 }

@@ -12,6 +12,8 @@ import { AgentsPage } from '@/components/agents/agents-page'
 import { CopilotPage } from '@/components/copilot/copilot-page'
 import { ReportsPage } from '@/components/reports/reports-page'
 import { WorkflowsPage } from '@/components/workflows/workflows-page'
+import { ObservabilityPage } from '@/components/observability/observability-page'
+import { BrowserPage } from '@/components/browser/browser-page'
 import { SettingsPage } from '@/components/settings/settings-page'
 import { useEffect } from 'react'
 
@@ -33,6 +35,10 @@ function PageRouter() {
       return <ReportsPage />
     case 'workflows':
       return <WorkflowsPage />
+    case 'observability':
+      return <ObservabilityPage />
+    case 'browser':
+      return <BrowserPage />
     case 'settings':
       return <SettingsPage />
     default:

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { withApiHandler, requireAuth, logAction } from '@/lib/middleware'
+import { trackEvent, trackTokenUsage } from '@/lib/observability'
 
 // Report type prompts for AI generation
 const reportTypePrompts: Record<string, string> = {
@@ -40,143 +42,183 @@ Use professional financial reporting language. Format with markdown tables and c
 Use well-researched, factual language with specific data points. Format with markdown headers and bullet points.`,
 }
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json()
-    const { organizationId, title, type, format } = body
+// POST — Generate report with middleware
+export const POST = withApiHandler({
+  resource: 'reports',
+  action: 'execute',
+  rateLimitEndpoint: 'reports',
+  auditAction: 'report.generate',
+}, async (req, user) => {
+  const body = await req.json()
+  const { organizationId, title, type, format } = body
 
-    if (!organizationId || !title || !type) {
-      return NextResponse.json(
-        { error: 'Organization ID, title, and type are required' },
-        { status: 400 }
-      )
-    }
-
-    // Validate type
-    const validTypes = ['investor', 'board', 'kpi', 'financial', 'market']
-    if (!validTypes.includes(type)) {
-      return NextResponse.json(
-        { error: `Invalid report type. Must be one of: ${validTypes.join(', ')}` },
-        { status: 400 }
-      )
-    }
-
-    // Validate format if provided
-    if (format) {
-      const validFormats = ['pdf', 'docx', 'pptx', 'csv', 'xlsx']
-      if (!validFormats.includes(format)) {
-        return NextResponse.json(
-          { error: `Invalid format. Must be one of: ${validFormats.join(', ')}` },
-          { status: 400 }
-        )
-      }
-    }
-
-    // Fetch organization context for richer AI generation
-    const organization = await db.organization.findUnique({
-      where: { id: organizationId },
-    })
-
-    // Fetch any existing KPI data for the organization
-    const kpis = await db.kpi.findMany({
-      where: { organizationId },
-      orderBy: { updatedAt: 'desc' },
-      take: 20,
-    })
-
-    // Fetch recent forecasts for financial context
-    const forecasts = await db.forecast.findMany({
-      where: { organizationId },
-      include: {
-        statements: {
-          orderBy: { month: 'desc' },
-          take: 12,
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 3,
-    })
-
-    // Build context string from available data
-    let dataContext = ''
-    if (organization) {
-      dataContext += `\nOrganization: ${organization.name}, Industry: ${organization.industry || 'N/A'}, Currency: ${organization.currency}`
-    }
-    if (kpis.length > 0) {
-      dataContext += '\n\nCurrent KPIs:\n' + kpis.map(k => `- ${k.name}: ${k.value} ${k.unit} (target: ${k.target || 'N/A'})`).join('\n')
-    }
-    if (forecasts.length > 0 && forecasts[0].statements.length > 0) {
-      const recentStatements = forecasts[0].statements.slice(0, 3)
-      dataContext += '\n\nRecent Financial Data:\n' + recentStatements.map(s =>
-        `- ${s.month} (${s.type}): Revenue: ${s.revenue}, Expenses: ${s.expenses}, Net Income: ${s.netIncome}, Cash Balance: ${s.cashBalance}`
-      ).join('\n')
-    }
-
-    // Generate report content using AI
-    let reportContent = '{}'
-    try {
-      const ZAI = (await import('z-ai-web-dev-sdk')).default
-      const zai = await ZAI.create()
-
-      const systemPrompt = reportTypePrompts[type]
-      const prompt = `Generate a ${type} report titled "${title}".${dataContext}\n\nProduce a detailed, professional report with all sections fully written out. Use markdown formatting.`
-
-      const completion = await zai.chat.completions.create({
-        messages: [
-          { role: 'assistant', content: systemPrompt },
-          { role: 'user', content: prompt },
-        ],
-        thinking: { type: 'disabled' },
-      })
-
-      const aiContent = completion.choices[0]?.message?.content || ''
-
-      // Structure the report content as JSON
-      const structuredContent = {
-        title,
-        type,
-        generatedAt: new Date().toISOString(),
-        organizationName: organization?.name || '',
-        sections: [],
-        fullContent: aiContent,
-      }
-
-      reportContent = JSON.stringify(structuredContent)
-    } catch (aiError) {
-      console.error('AI report generation error:', aiError)
-      // Fallback to a basic structure
-      reportContent = JSON.stringify({
-        title,
-        type,
-        generatedAt: new Date().toISOString(),
-        organizationName: organization?.name || '',
-        sections: [],
-        fullContent: `Report generation encountered an issue. Please try regenerating the "${title}" report.`,
-        error: true,
-      })
-    }
-
-    // Create the report in the database
-    const report = await db.report.create({
-      data: {
-        title,
-        type,
-        format: format || 'pdf',
-        status: 'generated',
-        content: reportContent,
-        organizationId,
-      },
-    })
-
-    return NextResponse.json({ report }, { status: 201 })
-  } catch (error) {
-    console.error('Report generation error:', error)
-    return NextResponse.json({ error: 'Failed to generate report' }, { status: 500 })
+  if (!organizationId || !title || !type) {
+    return NextResponse.json(
+      { error: 'Organization ID, title, and type are required' },
+      { status: 400 }
+    )
   }
-}
 
+  // Verify org membership
+  if (user.organizationId !== organizationId) {
+    return NextResponse.json({ error: 'Organization ID does not match your membership' }, { status: 403 })
+  }
+
+  // Validate type
+  const validTypes = ['investor', 'board', 'kpi', 'financial', 'market']
+  if (!validTypes.includes(type)) {
+    return NextResponse.json(
+      { error: `Invalid report type. Must be one of: ${validTypes.join(', ')}` },
+      { status: 400 }
+    )
+  }
+
+  // Validate format if provided
+  if (format) {
+    const validFormats = ['pdf', 'docx', 'pptx', 'csv', 'xlsx']
+    if (!validFormats.includes(format)) {
+      return NextResponse.json(
+        { error: `Invalid format. Must be one of: ${validFormats.join(', ')}` },
+        { status: 400 }
+      )
+    }
+  }
+
+  // Fetch organization context for richer AI generation
+  const organization = await db.organization.findUnique({
+    where: { id: organizationId },
+  })
+
+  // Fetch any existing KPI data for the organization
+  const kpis = await db.kpi.findMany({
+    where: { organizationId },
+    orderBy: { updatedAt: 'desc' },
+    take: 20,
+  })
+
+  // Fetch recent forecasts for financial context
+  const forecasts = await db.forecast.findMany({
+    where: { organizationId },
+    include: {
+      statements: {
+        orderBy: { month: 'desc' },
+        take: 12,
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 3,
+  })
+
+  // Build context string from available data
+  let dataContext = ''
+  if (organization) {
+    dataContext += `\nOrganization: ${organization.name}, Industry: ${organization.industry || 'N/A'}, Currency: ${organization.currency}`
+  }
+  if (kpis.length > 0) {
+    dataContext += '\n\nCurrent KPIs:\n' + kpis.map(k => `- ${k.name}: ${k.value} ${k.unit} (target: ${k.target || 'N/A'})`).join('\n')
+  }
+  if (forecasts.length > 0 && forecasts[0].statements.length > 0) {
+    const recentStatements = forecasts[0].statements.slice(0, 3)
+    dataContext += '\n\nRecent Financial Data:\n' + recentStatements.map(s =>
+      `- ${s.month} (${s.type}): Revenue: ${s.revenue}, Expenses: ${s.expenses}, Net Income: ${s.netIncome}, Cash Balance: ${s.cashBalance}`
+    ).join('\n')
+  }
+
+  // Generate report content using AI
+  let reportContent = '{}'
+  let tokensUsed = 0
+
+  try {
+    const ZAI = (await import('z-ai-web-dev-sdk')).default
+    const zai = await ZAI.create()
+
+    const systemPrompt = reportTypePrompts[type]
+    const prompt = `Generate a ${type} report titled "${title}".${dataContext}\n\nProduce a detailed, professional report with all sections fully written out. Use markdown formatting.`
+
+    const completion = await zai.chat.completions.create({
+      messages: [
+        { role: 'assistant', content: systemPrompt },
+        { role: 'user', content: prompt },
+      ],
+      thinking: { type: 'disabled' },
+    })
+
+    const aiContent = completion.choices[0]?.message?.content || ''
+    tokensUsed = Math.ceil(aiContent.length / 4)
+
+    // Structure the report content as JSON
+    const structuredContent = {
+      title,
+      type,
+      generatedAt: new Date().toISOString(),
+      organizationName: organization?.name || '',
+      sections: [],
+      fullContent: aiContent,
+    }
+
+    reportContent = JSON.stringify(structuredContent)
+  } catch (aiError) {
+    console.error('AI report generation error:', aiError)
+    // Fallback to a basic structure
+    reportContent = JSON.stringify({
+      title,
+      type,
+      generatedAt: new Date().toISOString(),
+      organizationName: organization?.name || '',
+      sections: [],
+      fullContent: `Report generation encountered an issue. Please try regenerating the "${title}" report.`,
+      error: true,
+    })
+  }
+
+  // Create the report in the database
+  const report = await db.report.create({
+    data: {
+      title,
+      type,
+      format: format || 'pdf',
+      status: 'generated',
+      content: reportContent,
+      organizationId,
+    },
+  })
+
+  // Track token usage
+  await trackTokenUsage({
+    organizationId,
+    userId: user.id,
+    promptTokens: 0,
+    completionTokens: 0,
+    totalTokens: tokensUsed,
+    requestType: 'report_generate',
+  }).catch(() => {})
+
+  // Audit log
+  await logAction(user.id, 'report.generate', 'reports', {
+    reportId: report.id,
+    title,
+    type,
+    format: format || 'pdf',
+  })
+
+  // Track event
+  await trackEvent({
+    organizationId,
+    userId: user.id,
+    eventType: 'api_request',
+    source: 'api',
+    status: 'info',
+    message: `Report generated: ${title} (${type})`,
+    data: { reportId: report.id, type },
+  }).catch(() => {})
+
+  return NextResponse.json({ report }, { status: 201 })
+})
+
+// GET — List reports with middleware
 export async function GET(req: NextRequest) {
   try {
+    const user = await requireAuth(req)
     const { searchParams } = new URL(req.url)
     const organizationId = searchParams.get('organizationId')
 
@@ -185,6 +227,11 @@ export async function GET(req: NextRequest) {
         { error: 'Organization ID is required' },
         { status: 400 }
       )
+    }
+
+    // Verify org membership
+    if (user.organizationId !== organizationId) {
+      return NextResponse.json({ error: 'Organization ID does not match your membership' }, { status: 403 })
     }
 
     const reports = await db.report.findMany({

@@ -17,6 +17,7 @@ import {
   Sparkles,
   LogOut,
   Building2,
+  Globe,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -36,6 +37,8 @@ const navItems: { id: PageId; label: string; icon: React.ElementType; group: str
   { id: 'copilot', label: 'AI Copilot', icon: MessageSquare, group: 'Intelligence' },
   { id: 'reports', label: 'Reports', icon: BarChart3, group: 'Operations' },
   { id: 'workflows', label: 'Workflows', icon: Workflow, group: 'Operations' },
+  { id: 'observability', label: 'Observability', icon: BarChart3, group: 'DevOps' },
+  { id: 'browser', label: 'Browser', icon: Globe, group: 'DevOps' },
   { id: 'settings', label: 'Settings', icon: Settings, group: 'System' },
 ]
 

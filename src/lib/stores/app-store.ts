@@ -8,6 +8,8 @@ export type PageId =
   | 'copilot'
   | 'reports' 
   | 'workflows'
+  | 'observability'
+  | 'browser'
   | 'settings'
 
 interface AppState {
