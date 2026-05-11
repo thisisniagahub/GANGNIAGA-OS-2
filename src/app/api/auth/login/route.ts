@@ -1,7 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
 import { cookies } from 'next/headers'
 import { checkRateLimit, logAction, logError, logDenied } from '@/lib/middleware'
+
+// Lazy-load Prisma to avoid crash on import when DB is unavailable
+async function getDb() {
+  try {
+    const { db } = await import('@/lib/db')
+    // Quick health check - try a simple query
+    await db.user.count({ take: 1 })
+    return db
+  } catch {
+    return null
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,7 +24,6 @@ export async function POST(req: NextRequest) {
 
     const rateLimitResult = checkRateLimit(clientIp, 'auth')
     if (!rateLimitResult.allowed) {
-      // Log rate limit hit
       await logDenied(clientIp, 'auth.login', 'users', 'Rate limit exceeded for login attempts').catch(() => {})
       return NextResponse.json(
         { error: 'Too many login attempts. Please try again later.' },
@@ -25,6 +35,17 @@ export async function POST(req: NextRequest) {
 
     if (!email || !password) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
+    }
+
+    // Try to connect to database
+    const db = await getDb()
+    
+    if (!db) {
+      // Database not available - return GUEST_MODE hint so client can auto-switch
+      return NextResponse.json({ 
+        error: 'Database not available. Using Demo Mode.', 
+        hint: 'GUEST_MODE' 
+      }, { status: 503 })
     }
 
     // Find user
@@ -40,14 +61,12 @@ export async function POST(req: NextRequest) {
     })
 
     if (!user) {
-      // Audit log for failed login
       await logDenied('unknown', 'auth.login', 'users', `Invalid email: ${email}`).catch(() => {})
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
     }
 
     // In production, compare hashed password
     if (user.passwordHash && user.passwordHash !== password) {
-      // Audit log for failed login
       await logDenied(user.id, 'auth.login', 'users', 'Invalid password').catch(() => {})
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
     }
@@ -83,14 +102,10 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Login error:', error)
     await logError('unknown', 'auth.login', 'users', error instanceof Error ? error.message : 'Unknown error').catch(() => {})
-    // Check if this is a database connection error (e.g., SQLite not available on Vercel)
-    const errorMsg = error instanceof Error ? error.message : ''
-    if (errorMsg.includes('ENOENT') || errorMsg.includes('SQLITE') || errorMsg.includes('Cannot open database') || errorMsg.includes('P1001') || errorMsg.includes('Connection')) {
-      return NextResponse.json({ 
-        error: 'Database not available in this environment. Please use Demo Mode instead.', 
-        hint: 'GUEST_MODE' 
-      }, { status: 503 })
-    }
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    // Any unhandled error - check if it's database related
+    return NextResponse.json({ 
+      error: 'Service temporarily unavailable. Please use Demo Mode.', 
+      hint: 'GUEST_MODE' 
+    }, { status: 503 })
   }
 }
