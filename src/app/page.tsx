@@ -112,13 +112,26 @@ function AuthenticatedApp() {
 }
 
 export default function Home() {
-  const { isAuthenticated, setUser, setOrganization } = useAuthStore()
+  const { isAuthenticated, setUser, setOrganization, loginAsGuest } = useAuthStore()
   const [isCheckingSession, setIsCheckingSession] = useState(true)
 
   // Check for existing session on mount
   useEffect(() => {
     const checkSession = async () => {
       try {
+        // First check localStorage for guest session
+        const isGuest = localStorage.getItem('gangniaga_guest')
+        if (isGuest === 'true') {
+          const storedUser = localStorage.getItem('gangniaga_user')
+          const storedOrg = localStorage.getItem('gangniaga_org')
+          if (storedUser && storedOrg) {
+            loginAsGuest()
+            setIsCheckingSession(false)
+            return
+          }
+        }
+
+        // Then try server session
         const res = await fetch('/api/auth/session')
         if (res.ok) {
           const data = await res.json()
@@ -134,7 +147,7 @@ export default function Home() {
       }
     }
     checkSession()
-  }, [setUser, setOrganization])
+  }, [setUser, setOrganization, loginAsGuest])
 
   if (isCheckingSession) {
     return (

@@ -182,7 +182,7 @@ function PasswordInput({
 /* ──────────────────────── Main AuthPage ──────────────────────── */
 
 export function AuthPage() {
-  const { login, register, isLoading } = useAuthStore()
+  const { login, register, isLoading, loginAsGuest } = useAuthStore()
 
   /* Login state */
   const [loginEmail, setLoginEmail] = useState('')
@@ -526,10 +526,21 @@ export function AuthPage() {
                   </TabsContent>
                 </Tabs>
 
-                {/* Demo notice */}
+                {/* Demo / Guest Mode */}
                 <div className="mt-6 border-t pt-4">
-                  <p className="text-center text-xs text-muted-foreground">
-                    Demo: Use any email/password to sign up, or sign in with existing credentials
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400 dark:hover:bg-emerald-950/50 dark:hover:text-emerald-300"
+                    size="lg"
+                    onClick={loginAsGuest}
+                    disabled={isLoading}
+                  >
+                    <Zap className="mr-2 h-4 w-4" />
+                    Try Demo — No Sign Up Required
+                  </Button>
+                  <p className="mt-2 text-center text-xs text-muted-foreground">
+                    Explore all features with sample data. Or sign up to save your progress.
                   </p>
                 </div>
               </CardContent>

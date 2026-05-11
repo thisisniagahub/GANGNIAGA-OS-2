@@ -102,6 +102,14 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Registration error:', error)
     await logError('unknown', 'auth.register', 'users', error instanceof Error ? error.message : 'Unknown error').catch(() => {})
+    // Check if this is a database connection error (e.g., SQLite not available on Vercel)
+    const errorMsg = error instanceof Error ? error.message : ''
+    if (errorMsg.includes('ENOENT') || errorMsg.includes('SQLITE') || errorMsg.includes('Cannot open database') || errorMsg.includes('P1001') || errorMsg.includes('Connection')) {
+      return NextResponse.json({ 
+        error: 'Database not available in this environment. Please use Demo Mode instead.', 
+        hint: 'GUEST_MODE' 
+      }, { status: 503 })
+    }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
