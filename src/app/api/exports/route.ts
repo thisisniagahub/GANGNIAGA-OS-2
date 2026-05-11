@@ -11,10 +11,7 @@ export async function GET(req: NextRequest) {
     const organizationId = searchParams.get('organizationId')
 
     if (!organizationId) {
-      return NextResponse.json(
-        { error: 'Organization ID is required' },
-        { status: 400 },
-      )
+      return NextResponse.json({ exports: [] })
     }
 
     const exports = await listExports(organizationId)

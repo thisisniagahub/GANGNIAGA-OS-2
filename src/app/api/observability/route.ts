@@ -22,10 +22,7 @@ export async function GET(req: NextRequest) {
       : undefined
 
     if (!organizationId) {
-      return NextResponse.json(
-        { error: 'Organization ID is required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ data: null })
     }
 
     switch (type) {

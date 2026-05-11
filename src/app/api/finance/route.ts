@@ -18,10 +18,7 @@ export async function GET(req: NextRequest) {
     const period = searchParams.get('period') || undefined
 
     if (!organizationId) {
-      return NextResponse.json(
-        { error: 'Organization ID is required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ metrics: null })
     }
 
     switch (type) {
@@ -79,10 +76,7 @@ export async function GET(req: NextRequest) {
     }
   } catch (error) {
     console.error('Finance GET error:', error)
-    return NextResponse.json(
-      { error: 'Failed to calculate financial metrics' },
-      { status: 500 }
-    )
+    return NextResponse.json({ metrics: null })
   }
 }
 

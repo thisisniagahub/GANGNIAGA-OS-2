@@ -181,19 +181,13 @@ export async function GET(req: NextRequest) {
 
     // Otherwise, list sessions for a user
     if (!userId) {
-      return NextResponse.json(
-        { error: 'userId or sessionId is required' },
-        { status: 400 },
-      )
+      return NextResponse.json({ sessions: [] })
     }
 
     const sessions = await listBrowserSessions(userId)
     return NextResponse.json({ sessions })
   } catch (error) {
     console.error('Browser sessions fetch error:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch browser sessions' },
-      { status: 500 },
-    )
+    return NextResponse.json({ sessions: [] })
   }
 }
