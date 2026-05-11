@@ -1,0 +1,11 @@
+{
+  "name": "hermes-agent-service",
+  "version": "1.0.0",
+  "description": "Hermes Agent API Server proxy for GangNiaga AI OS",
+  "scripts": {
+    "dev": "bun --hot index.ts"
+  },
+  "dependencies": {
+    "z-ai-web-dev-sdk": "^0.0.17"
+  }
+}

@@ -8,6 +8,7 @@ export type PageId =
   | 'actuals'
   | 'plan-review'
   | 'pitch-deck'
+  | 'hermes'
   | 'agents' 
   | 'copilot'
   | 'research'

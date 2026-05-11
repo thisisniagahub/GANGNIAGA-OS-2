@@ -24,6 +24,7 @@ import {
   ShieldCheck,
   Search,
   Activity,
+  Zap,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -44,6 +45,7 @@ const navItems: { id: PageId; label: string; icon: React.ElementType; group: str
   { id: 'actuals', label: 'Plan vs Actuals', icon: Target, group: 'Planning' },
   { id: 'plan-review', label: 'Plan Review', icon: ShieldCheck, group: 'Planning', badge: 'AI' },
   { id: 'pitch-deck', label: 'Pitch Decks', icon: Presentation, group: 'Planning' },
+  { id: 'hermes', label: 'Hermes Agent', icon: Zap, group: 'Intelligence', badge: 'NEW' },
   { id: 'agents', label: 'AI Agents', icon: Bot, group: 'Intelligence', badge: '8' },
   { id: 'copilot', label: 'AI Copilot', icon: MessageSquare, group: 'Intelligence' },
   { id: 'research', label: 'Research', icon: Search, group: 'Intelligence' },

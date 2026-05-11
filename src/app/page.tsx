@@ -21,6 +21,7 @@ import { ResearchPage } from '@/components/research/research-page'
 import { PlanReviewPage } from '@/components/plan-review/plan-review-page'
 import { PitchDeckPage } from '@/components/pitch-deck/pitch-deck-page'
 import { ActualsPage } from '@/components/actuals/actuals-page'
+import HermesHubPage from '@/components/hermes/hermes-hub-page'
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 
@@ -39,6 +40,7 @@ const pageComponents: Record<string, React.ComponentType> = {
   observability: ObservabilityPage,
   browser: BrowserPage,
   'plan-review': PlanReviewPage,
+  'hermes': HermesHubPage,
   settings: SettingsPage,
 }
 
@@ -94,7 +96,8 @@ function AuthenticatedApp() {
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <div className="flex items-center gap-2">
               <span className="font-medium">GangNiaga AI OS</span>
-              <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-semibold">v4.0</span>
+              <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-semibold">v4.1</span>
+              <span className="text-[10px] bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded-full font-semibold">× Hermes Agent</span>
             </div>
             <span className="hidden sm:inline">Autonomous Business Operating System</span>
             <span className="sm:hidden">AI Business OS</span>
