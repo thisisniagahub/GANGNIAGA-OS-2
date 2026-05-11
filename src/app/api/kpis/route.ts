@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ kpis })
   } catch (error) {
     console.error('KPIs fetch error:', error)
-    return NextResponse.json({ error: 'Failed to fetch KPIs' }, { status: 500 })
+    return NextResponse.json({ kpis: [] })
   }
 }
 

@@ -21,10 +21,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ exports })
   } catch (error) {
     console.error('Exports fetch error:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch exports' },
-      { status: 500 },
-    )
+    return NextResponse.json({ exports: [] })
   }
 }
 

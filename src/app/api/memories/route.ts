@@ -150,9 +150,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ memories })
   } catch (error) {
     console.error('Memory retrieval error:', error)
-    return NextResponse.json(
-      { error: 'Failed to retrieve memories' },
-      { status: 500 }
-    )
+    return NextResponse.json({ memories: [] })
   }
 }

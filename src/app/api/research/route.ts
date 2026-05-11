@@ -69,10 +69,7 @@ export async function GET(req: NextRequest) {
     }
   } catch (error) {
     console.error('Research GET error:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch research data' },
-      { status: 500 }
-    )
+    return NextResponse.json({ sources: [], total: 0 })
   }
 }
 

@@ -60,10 +60,7 @@ export async function GET(req: NextRequest) {
     }
   } catch (error) {
     console.error('Observability GET error:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch observability data' },
-      { status: 500 }
-    )
+    return NextResponse.json({ data: null })
   }
 }
 

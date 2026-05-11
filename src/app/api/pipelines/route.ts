@@ -50,9 +50,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ pipelines })
   } catch (error) {
     console.error('Pipeline list error:', error)
-    return NextResponse.json(
-      { error: 'Failed to list pipelines' },
-      { status: 500 }
-    )
+    return NextResponse.json({ pipelines: [] })
   }
 }

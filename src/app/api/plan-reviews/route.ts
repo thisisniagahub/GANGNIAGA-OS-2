@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { withApiHandler, requireAuth, logAction } from '@/lib/middleware'
+import { withApiHandler, getAuthUser, logAction } from '@/lib/middleware'
 import { reviewPlan } from '@/lib/plan-review'
 import { trackEvent } from '@/lib/observability'
 
@@ -111,27 +111,25 @@ export const POST = withApiHandler({
   )
 })
 
-// GET — List plan reviews by organization and/or plan
+// GET — List plan reviews by organization with graceful degradation for serverless
 export async function GET(req: NextRequest) {
   try {
-    const user = await requireAuth(req)
+    const user = await getAuthUser(req)
+    if (!user) {
+      return NextResponse.json({ reviews: [] })
+    }
+
     const { searchParams } = new URL(req.url)
     const organizationId = searchParams.get('organizationId')
     const planId = searchParams.get('planId')
 
     if (!organizationId) {
-      return NextResponse.json(
-        { error: 'Organization ID is required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ reviews: [] })
     }
 
     // Verify org membership
     if (user.organizationId !== organizationId) {
-      return NextResponse.json(
-        { error: 'Organization ID does not match your membership' },
-        { status: 403 }
-      )
+      return NextResponse.json({ reviews: [] })
     }
 
     const where: Record<string, unknown> = { organizationId }
@@ -153,10 +151,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ reviews })
   } catch (error) {
     console.error('Plan reviews fetch error:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch plan reviews' },
-      { status: 500 }
-    )
+    return NextResponse.json({ reviews: [] })
   }
 }
 

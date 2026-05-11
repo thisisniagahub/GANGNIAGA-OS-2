@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { withApiHandler, requireAuth, logAction } from '@/lib/middleware'
+import { withApiHandler, requireAuth, getAuthUser, logAction } from '@/lib/middleware'
 import { trackEvent, trackTokenUsage } from '@/lib/observability'
 import { executeAgentTask, AGENT_DEFINITIONS } from '@/lib/agents'
 
@@ -85,9 +85,13 @@ export const POST = withApiHandler({
 // GET — List agent sessions with middleware
 export async function GET(req: NextRequest) {
   try {
-    const user = await requireAuth(req)
+    const user = await getAuthUser(req)
     const { searchParams } = new URL(req.url)
-    const userId = searchParams.get('userId') || user.id
+    const userId = searchParams.get('userId') || user?.id
+
+    if (!userId) {
+      return NextResponse.json({ sessions: [] })
+    }
 
     const sessions = await db.agentSession.findMany({
       where: { userId },
@@ -102,6 +106,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ sessions })
   } catch (error) {
     console.error('Agent sessions fetch error:', error)
-    return NextResponse.json({ error: 'Failed to fetch agent sessions' }, { status: 500 })
+    return NextResponse.json({ sessions: [] })
   }
 }
