@@ -67,7 +67,7 @@ async function resolveUserId(req?: NextRequest): Promise<string | undefined> {
 
 /**
  * Get the authenticated user from the session cookie or fallback sources.
- * Returns null if no valid session is found.
+ * Returns null if no valid session is found or database is unreachable.
  */
 export async function getAuthUser(req?: NextRequest): Promise<AuthUser | null> {
   try {

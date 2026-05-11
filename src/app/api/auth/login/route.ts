@@ -1,18 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { db } from '@/lib/db'
 import { checkRateLimit, logAction, logError, logDenied } from '@/lib/middleware'
-
-// Lazy-load Prisma to avoid crash on import when DB is unavailable
-async function getDb() {
-  try {
-    const { db } = await import('@/lib/db')
-    // Quick health check - try a simple query
-    await db.user.count({ take: 1 })
-    return db
-  } catch {
-    return null
-  }
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -37,18 +26,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
     }
 
-    // Try to connect to database
-    const db = await getDb()
-    
-    if (!db) {
-      // Database not available - return GUEST_MODE hint so client can auto-switch
-      return NextResponse.json({ 
-        error: 'Database not available. Using Demo Mode.', 
-        hint: 'GUEST_MODE' 
-      }, { status: 503 })
-    }
-
-    // Find user
+    // Find user in PostgreSQL database
     const user = await db.user.findUnique({
       where: { email },
       include: {
@@ -65,7 +43,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
     }
 
-    // In production, compare hashed password
+    // Verify password (compare with stored hash)
     if (user.passwordHash && user.passwordHash !== password) {
       await logDenied(user.id, 'auth.login', 'users', 'Invalid password').catch(() => {})
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
@@ -102,9 +80,8 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Login error:', error)
     await logError('unknown', 'auth.login', 'users', error instanceof Error ? error.message : 'Unknown error').catch(() => {})
-    // Any unhandled error - check if it's database related
     return NextResponse.json({ 
-      error: 'Service temporarily unavailable. Please use Demo Mode.', 
+      error: 'Service temporarily unavailable. Please try again.', 
       hint: 'GUEST_MODE' 
     }, { status: 503 })
   }

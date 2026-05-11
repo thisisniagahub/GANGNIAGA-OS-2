@@ -1,17 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { db } from '@/lib/db'
 import { checkRateLimit, logAction, logError } from '@/lib/middleware'
-
-// Lazy-load Prisma to avoid crash on import when DB is unavailable
-async function getDb() {
-  try {
-    const { db } = await import('@/lib/db')
-    await db.user.count({ take: 1 })
-    return db
-  } catch {
-    return null
-  }
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -39,18 +29,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 })
     }
 
-    // Try to connect to database
-    const db = await getDb()
-
-    if (!db) {
-      // Database not available - return GUEST_MODE hint so client can auto-switch
-      return NextResponse.json({ 
-        error: 'Database not available. Using Demo Mode.', 
-        hint: 'GUEST_MODE' 
-      }, { status: 503 })
-    }
-
-    // Check if user exists
+    // Check if user exists in PostgreSQL
     const existingUser = await db.user.findUnique({ where: { email } })
     if (existingUser) {
       return NextResponse.json({ error: 'Email already registered' }, { status: 409 })
@@ -123,9 +102,8 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Registration error:', error)
     await logError('unknown', 'auth.register', 'users', error instanceof Error ? error.message : 'Unknown error').catch(() => {})
-    // Any unhandled error - return GUEST_MODE hint
     return NextResponse.json({ 
-      error: 'Service temporarily unavailable. Please use Demo Mode.', 
+      error: 'Service temporarily unavailable. Please try again.', 
       hint: 'GUEST_MODE' 
     }, { status: 503 })
   }
